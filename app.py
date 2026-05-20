@@ -1,503 +1,367 @@
-import datetime
-import re
-import io
-import warnings
-import pandas as pd
-import numpy as np
+"""
+TRAINING ANALYTICS & MANPOWER INTELLIGENCE PLATFORM
+Streamlit Entry Point — Page config, sidebar, tab routing.
+No business logic here — all delegated to modules.
+"""
 import streamlit as st
-import plotly.express as px
-import plotly.graph_objects as go
-from rapidfuzz import fuzz, process as rfprocess
-import jellyfish
-import recordlinkage
-from symspellpy import SymSpell, Verbosity
-warnings.filterwarnings('ignore')
+import pandas as pd
+import datetime
 
-# ── OFFICIAL BRAND CORPORATE COLOR PALETTE ────────────────────────────────────
-BRAND_RED       = "#E31837" # Primary Accent / Call-to-actions / Critical highlights
-BRAND_CHARCOAL  = "#4D4D4F" # Dark Neutral / Sub-headers / Body text elements
-BRAND_DARK_CORE = "#231F20" # Primary Dark Accent / Dynamic structural elements
-BRAND_LIGHT_GREY= "#E6E7E8" # Light Background Tint / Structural block surfaces
-BRAND_WHITE     = "#FFFFFF" # Pure Neutral
-
-# ── FISCAL CALENDAR BOUNDARIES ────────────────────────────────────────────────
-CURRENT_FY = "F-26"
-FY_CALENDAR = {
-    "F-23": {"start": datetime.date(2022, 4, 1), "end": datetime.date(2023, 3, 31)},
-    "F-24": {"start": datetime.date(2023, 4, 1), "end": datetime.date(2024, 3, 31)},
-    "F-25": {"start": datetime.date(2024, 4, 1), "end": datetime.date(2025, 3, 31)},
-    "F-26": {"start": datetime.date(2025, 4, 1), "end": datetime.date(2026, 3, 31)},
-}
-
-# ── RETRAINING RECALL INTERVAL BUCKETS ───────────────────────────────────────
-RECALL_BUCKETS = [
-    ("CRITICAL",   36, BRAND_RED,       "Critical — 3+ years since last training"),
-    ("OVERDUE",    24, "#FF8C00",       "Overdue — 2–3 years since last training"),
-    ("DUE_SOON",   18, "#FFD700",       "Due Soon — 18–24 months since last training"),
-    ("RECENT",      6, "#90EE90",       "Recent — 6–18 months since last training"),
-    ("CURRENT_FY",  0, BRAND_CHARCOAL,  "Current FY — trained this financial year"),
-]
-NEVER_TRAINED_COLOR  = BRAND_LIGHT_GREY
-NEVER_TRAINED_LABEL  = "NEVER_TRAINED"
-
-# ── MATRICES FOR SKILL SCORING ────────────────────────────────────────────────
-SKILL_SCORE_MAP = {
-    0: 0, "0": 0,
-    "L1": 1, "L2": 2, "L3": 3, "L4": 4,
-    "NO TEST": -1,
-}
-SKILL_LABELS = {-1: "NO TEST", 0: "0", 1: "L1", 2: "L2", 3: "L3", 4: "L4"}
-
-# ── PRODUCTION MODEL TEXT STANDARDIZATION MAP ────────────────────────────────
-MODEL_NORMALISATION_MAP = {
-    "INSTALATION":       "INSTALLATION",
-    "L1-L2 TRAINING":    "L1 L2 TRAINING",
-    "M LIFT HYDRAULIC":  "M-LIFT HYDRAULICS",
-    "FARM MACHNINERY":   "FARM MACHINERY",
-    "FARM MACHINERY":    "FARM MACHINERY",
-    "YUVO HYDRAULICS":   "YUVO HYDRAULICS",
-}
-
-CANONICAL_MODELS = [
-    "H1 R", "YT+", "TREM IV", "OJA", "ENGINE SETTINGS", "SALES MAN TRAINING",
-    "TREM IV REFRESH", "H1 TRACTOR", "YUVO HYDRAULICS", "H1 R INSTALLATION",
-    "NOVO", "MS PTO", "HYDRAULICS", "ROTAVATOR", "OJA REFRESHER", "KRISH E KIT",
-    "ASK PORTAL", "L1 L2 TRAINING", "DSQI", "FARM MACHINERY", "INSTALLATION",
-    "SST - AWARENESS", "HY TECH HYDRAULIC", "FLA PRODUCT TRAINING", "XP PLUS",
-    "THRESHER", "STRAW REAPER", "PARIVARTAN KIT", "WET CLUTCH", "WARRANTY MODULE",
-    "ELECTRICALS", "LOADER", "M-LIFT HYDRAULICS", "SP PLUS", "ARJUN", "JIVO",
-    "NEW DEALER INDUCTION", "LASER LEVELER", "MSDC - TRAINING", "YUVO TRACTOR", "N - PAGE",
-]
-
-MODEL_CATEGORY_MAP = {
-    "H1 R": "TECHNICAL", "H1 TRACTOR": "TECHNICAL", "H1 R INSTALLATION": "TECHNICAL",
-    "TREM IV": "TECHNICAL", "TREM IV REFRESH": "TECHNICAL", "OJA": "TECHNICAL", 
-    "OJA REFRESHER": "TECHNICAL", "NOVO": "TECHNICAL", "YT+": "TECHNICAL", 
-    "SP PLUS": "TECHNICAL", "XP PLUS": "TECHNICAL", "ARJUN": "TECHNICAL", 
-    "JIVO": "TECHNICAL", "YUVO TRACTOR": "TECHNICAL", "ENGINE SETTINGS": "TECHNICAL",
-    "HYDRAULICS": "TECHNICAL", "YUVO HYDRAULICS": "TECHNICAL", "HY TECH HYDRAULIC": "TECHNICAL", 
-    "M-LIFT HYDRAULICS": "TECHNICAL", "MS PTO": "TECHNICAL", "WET CLUTCH": "TECHNICAL", 
-    "ELECTRICALS": "TECHNICAL", "DSQI": "TECHNICAL", 
-    "ROTAVATOR": "PRODUCT", "THRESHER": "PRODUCT", "STRAW REAPER": "PRODUCT", 
-    "LOADER": "PRODUCT", "LASER LEVELER": "PRODUCT", "KRISH E KIT": "PRODUCT", 
-    "PARIVARTAN KIT": "PRODUCT", "INSTALLATION": "PRODUCT", "FARM MACHINERY": "PRODUCT", 
-    "SALES MAN TRAINING": "PROCESS", "ASK PORTAL": "PROCESS", "NEW DEALER INDUCTION": "PROCESS", 
-    "WARRANTY MODULE": "PROCESS", "SST - AWARENESS": "PROCESS", "FLA PRODUCT TRAINING": "PROCESS", 
-    "MSDC - TRAINING": "PROCESS", "L1 L2 TRAINING": "PROCESS", "N - PAGE": "PROCESS"
-}
-
-TECHNICAL_DESIGNATIONS = ["Technician", "Installer", "Service Advisor (FLA)", "Techguru", "Electrician"]
-ALL_DESIGNATIONS = TECHNICAL_DESIGNATIONS + ["Salesman", "Sales Manager", "Works Manager", "Branch Manager", "General Manager", "Team Leader"]
-
-ZONE_STATE_MAP = {
-    "Zone1": ["Haryana", "Punjab", "Rajasthan East", "Rajasthan West"],
-    "Zone2": ["UP Central", "UP East", "UP West"],
-    "Zone3": ["Bihar", "Jharkhand", "North East", "West Bengal"],
-    "Zone4": ["Chhattisgarh", "Madhya Pradesh East", "Madhya Pradesh West", "Odisha"],
-    "Zone5": ["Gujarat", "Karnataka", "Maharashtra East", "Maharashtra West"],
-    "Zone6": ["Andhra Pradesh", "Tamil Nadu", "Telangana"],
-}
-
-CONFIDENCE_ORDER = ["HIGH", "MEDIUM", "LOW", "FUZZY", "UNRESOLVED"]
-CONFIDENCE_COLORS = {
-    "HIGH":       "#CCFFCC",
-    "MEDIUM":     "#CCFFFF",
-    "LOW":        "#FFE0A0",
-    "FUZZY":      "#FFD0FF",
-    "UNRESOLVED": "#FFCCCC",
-}
-
-FUZZY_PRIMARY_THRESHOLD   = 88
-FUZZY_SECONDARY_THRESHOLD = 75
-RECORDLINKAGE_SCORE_HIGH  = 4.0
-RECORDLINKAGE_SCORE_FUZZY = 2.5
-
-from utils import (
-    average_skill_score, get_skill_label, get_skill_score, calculate_recall_bucket
+# ── Config & Constants ──────────────────────────────────────────────────────
+from config.constants import (
+    BRAND_RED, BRAND_CHARCOAL, BRAND_DARK_CORE, BRAND_LIGHT_GREY,
+    BRAND_WHITE, ROSTER_COLUMNS, TRAINING_COLUMNS,
 )
-from matching_engine import run_matching_pipeline
-from excel_exporter import export_to_excel
 
-# Set page configuration
+# ── Core Pipeline ───────────────────────────────────────────────────────────
+from core.etl import load_file, clean_dataframe, standardize_columns
+from core.deduplication import detect_duplicate_manpower, detect_duplicate_training
+from core.matching import resolve_star_ids
+from core.training_pipeline import (
+    assign_training_status, build_rolling_backlog, build_nomination_list,
+)
+
+# ── Analytics ───────────────────────────────────────────────────────────────
+from analytics.kpi_engine import compute_all_kpis
+
+# ── UI Tabs ─────────────────────────────────────────────────────────────────
+from ui.sidebar import render_sidebar, apply_filters
+from ui.overview_tab import render_overview
+from ui.backlog_tab import render_backlog
+from ui.skill_tab import render_skill
+from ui.penetration_tab import render_penetration
+from ui.manpower_tab import render_manpower
+from ui.audit_tab import render_audit
+
+# ── Export ──────────────────────────────────────────────────────────────────
+from export.excel_export import generate_excel_report
+from storage.mapping_store import persist_mappings
+
+# ── Logging ─────────────────────────────────────────────────────────────────
+from utils.logging_utils import (
+    log_etl_event, log_pipeline_event, Timer, build_audit_entry,
+)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PAGE CONFIG
+# ═══════════════════════════════════════════════════════════════════════════
 st.set_page_config(
-    page_title="Mahindra Manpower Training Analytics & Recall Portal",
-    page_icon="🟥",
+    page_title="Mahindra Training Analytics & Manpower Intelligence",
+    page_icon="🚜",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# Custom premium styling using HTML/CSS injection
+# ═══════════════════════════════════════════════════════════════════════════
+# CUSTOM CSS — Mahindra & Mahindra Tractors Theme
+# ═══════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
 <style>
-    /* Title Styling */
-    .portal-title {{
-        color: #E31837;
-        font-weight: 800;
-        font-size: 2.8rem;
-        margin-bottom: 0px;
-        letter-spacing: -1px;
-        text-transform: uppercase;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+    html, body, [class*="css"] {{
+        font-family: 'Inter', 'Segoe UI', sans-serif;
     }}
-    .portal-subtitle {{
-        color: #4D4D4F;
-        font-weight: 600;
-        font-size: 1.2rem;
-        margin-bottom: 25px;
-        text-transform: uppercase;
-        border-bottom: 4px solid #E31837;
-        padding-bottom: 8px;
+    .stApp {{
+        background-color: #F8F9FA;
     }}
-    
-    /* Metrics Card Styling */
-    .kpi-card {{
-        background-color: #FFFFFF;
-        border: 2px solid #E6E7E8;
-        border-top: 6px solid #E31837;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin-bottom: 15px;
-        text-align: center;
-        transition: transform 0.2s ease;
+    header[data-testid="stHeader"] {{
+        background-color: {BRAND_DARK_CORE};
     }}
-    .kpi-card:hover {{
-        transform: translateY(-2px);
+    .stTabs [data-baseweb="tab-list"] {{
+        gap: 4px;
     }}
-    .kpi-label {{
-        color: #4D4D4F;
-        font-size: 0.85rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }}
-    .kpi-value {{
-        color: #231F20;
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin-top: 5px;
-    }}
-    .kpi-desc {{
-        color: #888888;
-        font-size: 0.75rem;
-        margin-top: 5px;
-        text-transform: uppercase;
-    }}
-    
-    /* Custom Badge / Pill */
-    .badge {{
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #222;
-        margin-right: 5px;
-    }}
-    
-    /* Alert / Normal Info styling */
-    .custom-alert {{
+    .stTabs [data-baseweb="tab"] {{
         background-color: {BRAND_LIGHT_GREY};
+        border-radius: 6px 6px 0 0;
+        padding: 8px 20px;
+        font-weight: 600;
+        color: {BRAND_CHARCOAL};
+    }}
+    .stTabs [aria-selected="true"] {{
+        background-color: {BRAND_RED} !important;
+        color: white !important;
+    }}
+    div[data-testid="stSidebar"] {{
+        background-color: {BRAND_DARK_CORE};
+        color: white;
+    }}
+    div[data-testid="stSidebar"] label,
+    div[data-testid="stSidebar"] .stMarkdown {{
+        color: white !important;
+    }}
+    .stButton>button[kind="primary"] {{
+        background-color: {BRAND_RED};
+        color: white;
+        font-weight: 700;
+        border: none;
         border-radius: 6px;
-        padding: 15px;
-        border-left: 4px solid {BRAND_CHARCOAL};
-        margin-bottom: 20px;
+        padding: 12px 24px;
+    }}
+    .stButton>button[kind="primary"]:hover {{
+        background-color: #C0152E;
+    }}
+    .stDownloadButton>button {{
+        background-color: {BRAND_CHARCOAL};
+        color: white;
+        font-weight: 700;
+        border: none;
+        border-radius: 6px;
     }}
 </style>
 """, unsafe_allow_html=True)
 
-# App Logo / Header Section
-row_logo, row_header = st.columns([1, 11])
-with row_logo:
-    st.markdown(f"<div style='font-size:4rem; text-align:center; color:{BRAND_RED}; font-weight:800;'>M</div>", unsafe_allow_html=True)
-with row_header:
-    st.markdown('<div class="portal-title">MAHINDRA & MAHINDRA TRACTORS</div>', unsafe_allow_html=True)
-    st.markdown('<div class="portal-subtitle">Heavy-Duty Training Analytics & Recall Terminal</div>', unsafe_allow_html=True)
+# ═══════════════════════════════════════════════════════════════════════════
+# HEADER
+# ═══════════════════════════════════════════════════════════════════════════
+st.markdown(f"""
+<div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
+    <div style="background:{BRAND_RED}; color:white; font-size:2.5rem; font-weight:900;
+                width:60px; height:60px; display:flex; align-items:center; justify-content:center;
+                border-radius:10px;">M</div>
+    <div>
+        <div style="font-size:1.6rem; font-weight:800; color:{BRAND_DARK_CORE};">
+            MAHINDRA TRAINING ANALYTICS & MANPOWER INTELLIGENCE
+        </div>
+        <div style="font-size:0.85rem; color:{BRAND_CHARCOAL};">
+            Air-Gapped · Zero Row Loss · Deterministic · Offline
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-# Initialize Session State Variables
-if "df_master" not in st.session_state:
-    st.session_state["df_master"] = None
-if "stats" not in st.session_state:
-    st.session_state["stats"] = None
-if "active_tab" not in st.session_state:
-    st.session_state["active_tab"] = "Executive Dashboard"
+# ═══════════════════════════════════════════════════════════════════════════
+# SESSION STATE INITIALIZATION
+# ═══════════════════════════════════════════════════════════════════════════
+for key in ["unified_df", "duplicate_df", "backlog_df", "nomination_df",
+            "kpis", "stats", "audit_log", "pipeline_complete"]:
+    if key not in st.session_state:
+        st.session_state[key] = None
+if "audit_log" not in st.session_state or st.session_state["audit_log"] is None:
+    st.session_state["audit_log"] = []
 
-# Sidebar - Instructions & Mode Selector
-st.sidebar.markdown(f"<h3 style='color:{BRAND_RED};'>System Settings</h3>", unsafe_allow_html=True)
+# ═══════════════════════════════════════════════════════════════════════════
+# SIDEBAR
+# ═══════════════════════════════════════════════════════════════════════════
+sidebar_result = render_sidebar()
 
-input_mode = st.sidebar.radio(
-    "Select Input Mode:",
-    ["Upload Roster & Training Logs", "Upload Matched Master File"],
-    help="Select whether you want to process raw logs against the active roster or directly load a pre-matched file."
-)
-
-base_date = st.sidebar.date_input(
-    "Recall Calculation Base Date:",
-    datetime.date(2026, 5, 20),
-    help="The date relative to which the training elapsed months and recall buckets are calculated."
-)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown(f"<h3 style='color:{BRAND_RED};'>Data Source Files</h3>", unsafe_allow_html=True)
-
-df_roster_input = None
-df_training_inputs = []
-df_direct_master = None
-
-if input_mode == "Upload Roster & Training Logs":
-    roster_file = st.sidebar.file_uploader(
-        "1. Active Manpower Roster (Excel/CSV):",
-        type=["xlsx", "csv"],
-        help="Upload the active employee directory containing Star IDs, designations, etc."
-    )
-    training_files = st.sidebar.file_uploader(
-        "2. Raw Training Logs (Excel/CSV):",
-        type=["xlsx", "csv"],
-        accept_multiple_files=True,
-        help="Upload one or more files containing training logs with potentially missing Star IDs."
-    )
-    
-    if roster_file:
+# ═══════════════════════════════════════════════════════════════════════════
+# PIPELINE EXECUTION (triggered by sidebar button)
+# ═══════════════════════════════════════════════════════════════════════════
+if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
+    with st.spinner("🚜 Running ETL + Identity Resolution Pipeline..."):
         try:
-            if roster_file.name.endswith(".csv"):
-                df_roster_input = pd.read_csv(roster_file)
-            else:
-                df_roster_input = pd.read_excel(roster_file, sheet_name=0)
-            st.sidebar.success(f"Loaded Roster: {df_roster_input.shape[0]} rows")
-        except Exception as e:
-            st.sidebar.error(f"Error loading roster: {e}")
-            
-    if training_files:
-        for tf in training_files:
-            try:
-                if tf.name.endswith(".csv"):
-                    df_t = pd.read_csv(tf)
+            with Timer("Full Pipeline"):
+                audit_log = []
+
+                # ── Step 1: Load & Classify Files ───────────────────────────
+                manpower_dfs = []
+                training_dfs = []
+
+                for uploaded_file in sidebar_result["uploaded_files"]:
+                    file_type = sidebar_result["file_assignments"].get(
+                        uploaded_file.name, "Other"
+                    )
+                    raw_df = load_file(uploaded_file)
+                    if raw_df.empty:
+                        st.sidebar.error(f"❌ Failed to load: {uploaded_file.name}")
+                        continue
+
+                    cleaned = clean_dataframe(raw_df)
+                    audit_log.append(build_audit_entry(
+                        "FILE_LOADED", f"Loaded {uploaded_file.name} as {file_type}",
+                        rows_affected=len(cleaned),
+                    ))
+
+                    if file_type == "Manpower Roster":
+                        manpower_dfs.append(standardize_columns(cleaned, ROSTER_COLUMNS))
+                    elif file_type in ("Training Data", "Additional Training Data"):
+                        training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
+                    else:
+                        # Try to auto-detect by column presence
+                        if "Star ID" in cleaned.columns and "Training year" in cleaned.columns:
+                            training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
+                        elif "Star ID" in cleaned.columns:
+                            manpower_dfs.append(standardize_columns(cleaned, ROSTER_COLUMNS))
+                        else:
+                            training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
+
+                if not manpower_dfs and not training_dfs:
+                    st.error("❌ No valid data files loaded. Please check file assignments.")
+                    st.stop()
+
+                # Concatenate
+                manpower_df = pd.concat(manpower_dfs, ignore_index=True) if manpower_dfs else pd.DataFrame(columns=ROSTER_COLUMNS)
+                training_df = pd.concat(training_dfs, ignore_index=True) if training_dfs else pd.DataFrame(columns=TRAINING_COLUMNS)
+
+                log_etl_event(len(manpower_df), len(manpower_df), 0, "Manpower")
+                log_etl_event(len(training_df), len(training_df), 0, "Training")
+
+                # ── Step 2: Deduplication ────────────────────────────────────
+                manpower_clean, manpower_dups = detect_duplicate_manpower(manpower_df)
+                training_clean, training_dups = detect_duplicate_training(training_df)
+                all_duplicates = pd.concat([manpower_dups, training_dups], ignore_index=True)
+
+                audit_log.append(build_audit_entry(
+                    "DEDUPLICATION",
+                    f"Manpower: {len(manpower_dups)} dups, Training: {len(training_dups)} dups",
+                    rows_affected=len(all_duplicates),
+                ))
+
+                # ── Step 3: Identity Resolution ─────────────────────────────
+                if not training_clean.empty and not manpower_clean.empty:
+                    unified_df, stats = resolve_star_ids(training_clean, manpower_clean)
+                elif not manpower_clean.empty:
+                    # No training data — just use manpower
+                    unified_df = manpower_clean.copy()
+                    unified_df["Match_Method"] = "ROSTER_ONLY"
+                    unified_df["Match_Confidence"] = "HIGH"
+                    unified_df["Fuzzy_Score"] = 100.0
+                    unified_df["Phonetic_Score"] = 100.0
+                    unified_df["Matched_Candidate"] = unified_df.get("Star ID", "")
+                    stats = {"total_roster_count": len(manpower_clean), "total_training_input_count": 0,
+                             "total_master_count": len(unified_df), "matched_count": 0,
+                             "untrained_count": len(manpower_clean), "unresolved_count": 0,
+                             "confidence_distribution": {"HIGH": len(manpower_clean)},
+                             "passes_distribution": {"ROSTER_ONLY": len(manpower_clean)}}
                 else:
-                    df_t = pd.read_excel(tf, sheet_name=0)
-                df_training_inputs.append(df_t)
-            except Exception as e:
-                st.sidebar.error(f"Error loading {tf.name}: {e}")
-        if df_training_inputs:
-            tot_rows = sum([df.shape[0] for df in df_training_inputs])
-            st.sidebar.success(f"Loaded {len(df_training_inputs)} training file(s): {tot_rows} total rows")
+                    unified_df = training_clean.copy()
+                    stats = {"total_roster_count": 0, "total_training_input_count": len(training_clean),
+                             "total_master_count": len(training_clean)}
 
-    # Action Button for pipeline execution
-    if df_roster_input is not None and df_training_inputs:
-        if st.sidebar.button("⚡ Run Matching & Consolidation Pipeline", use_container_width=True):
-            with st.spinner("Executing offline fuzzy matching pipeline..."):
-                # Merge multiple training logs into one
-                df_all_training = pd.concat(df_training_inputs, ignore_index=True)
-                
-                # Execute pipeline
-                df_master, stats = run_matching_pipeline(df_roster_input, df_all_training, base_date)
-                
-                # Store in session state
-                st.session_state["df_master"] = df_master
+                audit_log.append(build_audit_entry(
+                    "IDENTITY_RESOLUTION",
+                    f"Resolved {stats.get('matched_count', 0)} records, "
+                    f"{stats.get('unresolved_count', 0)} unresolved",
+                    rows_affected=len(unified_df),
+                ))
+
+                # ── Step 4: Training Status & Backlog ───────────────────────
+                unified_df["Training_Status"] = unified_df.apply(assign_training_status, axis=1)
+                backlog_df = build_rolling_backlog(unified_df)
+                nomination_df = build_nomination_list(backlog_df)
+
+                audit_log.append(build_audit_entry(
+                    "BACKLOG_BUILT",
+                    f"Backlog: {len(backlog_df)} records, Nominations: {len(nomination_df)}",
+                    rows_affected=len(backlog_df),
+                ))
+
+                # ── Step 5: Persist to Session State ────────────────────────
+                st.session_state["unified_df"] = unified_df
+                st.session_state["duplicate_df"] = all_duplicates
+                st.session_state["backlog_df"] = backlog_df
+                st.session_state["nomination_df"] = nomination_df
+                st.session_state["kpis"] = compute_all_kpis(unified_df)
                 st.session_state["stats"] = stats
-                st.sidebar.success("Pipeline executed successfully!")
-    else:
-        st.sidebar.warning("Please upload the Active Roster and at least one Training Log file to execute.")
-        
-else: # Direct Matched Master upload
-    master_file = st.sidebar.file_uploader(
-        "Upload Matched Master File (Excel/CSV):",
-        type=["xlsx", "csv"],
-        help="Upload an already compiled master file containing all 25+ columns."
-    )
-    if master_file:
-        try:
-            if master_file.name.endswith(".csv"):
-                df_direct_master = pd.read_csv(master_file)
-            else:
-                # Load working file sheet if present
-                xl = pd.ExcelFile(master_file)
-                sheet_to_load = "Working file" if "Working file" in xl.sheet_names else xl.sheet_names[0]
-                df_direct_master = pd.read_excel(master_file, sheet_name=sheet_to_load)
-            
-            # Defensive check: Ensure required columns exist, adding them with NaNs if missing
-            req_cols = ['Joining Date', 'DOB', 'Training year', 'SKILL LEVEL - PRE', 'SKILL LEVEL - POST']
-            for c in req_cols:
-                if c not in df_direct_master.columns:
-                    df_direct_master[c] = np.nan
-                    
-            if 'VALIDATED_SKILL_LEVEL' not in df_direct_master.columns:
-                df_direct_master['VALIDATED_SKILL_LEVEL'] = "NO TEST"
-            if 'MISSING_PREREQUISITE_FLAG' not in df_direct_master.columns:
-                df_direct_master['MISSING_PREREQUISITE_FLAG'] = False
-                    
-            # Defensive check: if Joining Date, DOB are string types, cast them
-            df_direct_master['Joining Date'] = pd.to_datetime(df_direct_master['Joining Date'], errors='coerce')
-            df_direct_master['DOB'] = pd.to_datetime(df_direct_master['DOB'], errors='coerce')
-            
-            # Recalculate recall buckets for direct upload as well to match user-selected base date
-            def fy_to_date(fy_str):
-                if pd.isna(fy_str) or not isinstance(fy_str, str):
-                    return None
-                fy_str = fy_str.strip().upper()
-                if fy_str in FY_CALENDAR:
-                    return FY_CALENDAR[fy_str]["end"]
-                return None
-                
-            df_direct_master['Training_End_Date'] = df_direct_master['Training year'].apply(fy_to_date)
-            latest_training_dates = {}
-            for star_id, group in df_direct_master.groupby('Star ID'):
-                if pd.notna(star_id) and star_id != 0:
-                    valid_dates = group['Training_End_Date'].dropna()
-                    if not valid_dates.empty:
-                        latest_training_dates[star_id] = max(valid_dates)
-                        
-            def get_latest_training_date(row):
-                star_id = row.get('Star ID')
-                if pd.notna(star_id) and star_id != 0 and star_id in latest_training_dates:
-                    return latest_training_dates[star_id]
-                return row.get('Training_End_Date')
-                
-            df_direct_master['LATEST_TRAINING_DATE'] = df_direct_master.apply(get_latest_training_date, axis=1)
-            recall_results = df_direct_master['LATEST_TRAINING_DATE'].apply(lambda d: calculate_recall_bucket(d, base_date))
-            df_direct_master['RECALL_STATUS'] = [r[0] for r in recall_results]
-            df_direct_master['RECALL_COLOR'] = [r[1] for r in recall_results]
-            df_direct_master['RECALL_DESCRIPTION'] = [r[2] for r in recall_results]
-            df_direct_master.drop(columns=['Training_End_Date'], inplace=True, errors='ignore')
-            
-            # Flags
-            df_direct_master["FUTURE_JOINING_FLAG"] = df_direct_master["Joining Date"].dt.year > 2026
-            
-            # Skill regression flag
-            df_direct_master["pre_score"] = df_direct_master["SKILL LEVEL - PRE"].map(SKILL_SCORE_MAP).fillna(-1).astype(int)
-            df_direct_master["post_score"] = df_direct_master["SKILL LEVEL - POST"].map(SKILL_SCORE_MAP).fillna(-1).astype(int)
-            df_direct_master["SKILL_REGRESSION_FLAG"] = (df_direct_master["pre_score"] >= 0) & (df_direct_master["post_score"] >= 0) & (df_direct_master["post_score"] < df_direct_master["pre_score"])
-            
-            # Map default confidence
-            if "MATCH_CONFIDENCE" not in df_direct_master.columns:
-                df_direct_master["MATCH_CONFIDENCE"] = "HIGH"
-                df_direct_master["MATCH_REASON"] = "Direct master file import"
-                
-            # Create synthetic stats for matching metrics
-            total_rows = len(df_direct_master)
-            trained_mask = df_direct_master["Training year"].notnull()
-            trained_count = df_direct_master[trained_mask]["Star ID"].nunique()
-            total_manpower = df_direct_master["Star ID"].nunique()
-            untrained_count = total_manpower - trained_count
-            
-            conf_counts = df_direct_master["MATCH_CONFIDENCE"].value_counts().to_dict()
-            for c in CONFIDENCE_ORDER:
-                if c not in conf_counts:
-                    conf_counts[c] = 0
-                    
-            stats = {
-                "total_roster_count": total_manpower,
-                "total_training_input_count": int(trained_mask.sum()),
-                "total_master_count": total_rows,
-                "matched_count": int(trained_mask.sum()),
-                "untrained_count": untrained_count,
-                "unresolved_count": conf_counts.get("UNRESOLVED", 0),
-                "confidence_distribution": conf_counts,
-                "passes_distribution": {},
-                "future_joining_count": int(df_direct_master["FUTURE_JOINING_FLAG"].sum()),
-                "skill_regression_count": int(df_direct_master["SKILL_REGRESSION_FLAG"].sum()),
-                "missing_prerequisite_count": int(df_direct_master["MISSING_PREREQUISITE_FLAG"].sum())
-            }
-            
-            st.session_state["df_master"] = df_direct_master
-            st.session_state["stats"] = stats
-            st.sidebar.success(f"Master file loaded: {df_direct_master.shape[0]} rows")
+                st.session_state["audit_log"] = audit_log
+                st.session_state["pipeline_complete"] = True
+
+                # Persist mappings to SQLite
+                persist_mappings(unified_df)
+
+                log_pipeline_event(
+                    f"Pipeline complete: {len(unified_df)} rows in unified master"
+                )
+
+            st.success(
+                f"✅ Pipeline complete! "
+                f"{len(unified_df):,} rows processed | "
+                f"{stats.get('matched_count', 0):,} matched | "
+                f"{stats.get('unresolved_count', 0):,} unresolved | "
+                f"0 rows lost"
+            )
+
         except Exception as e:
-            st.sidebar.error(f"Error loading master: {e}")
+            st.error(f"❌ Pipeline error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
-# Check if data has been loaded
-df_master = st.session_state["df_master"]
-stats = st.session_state["stats"]
+# ═══════════════════════════════════════════════════════════════════════════
+# DASHBOARD TABS (only shown after pipeline runs)
+# ═══════════════════════════════════════════════════════════════════════════
+if st.session_state.get("pipeline_complete"):
+    unified_df = st.session_state["unified_df"]
+    duplicate_df = st.session_state["duplicate_df"]
+    backlog_df = st.session_state["backlog_df"]
+    nomination_df = st.session_state["nomination_df"]
+    kpis = st.session_state["kpis"]
+    filters = sidebar_result.get("filters", {})
 
-if df_master is None:
-    # Beautiful offline portal welcome page
+    # Apply filters to unified_df for display
+    df_filtered = apply_filters(unified_df, filters)
+
+    # ── Excel Download ──────────────────────────────────────────────────────
+    dl_col1, dl_col2 = st.columns(2)
+    with dl_col1:
+        excel_buf = generate_excel_report(
+            df_filtered, backlog_df, duplicate_df,
+            st.session_state.get("audit_log", []),
+        )
+        st.download_button(
+            "📥 Download Full Report (8 Sheets)",
+            excel_buf,
+            file_name="MAHINDRA_TRAINING_ANALYTICS_REPORT.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+    with dl_col2:
+        st.markdown(
+            f"<div style='padding:8px; background:{BRAND_LIGHT_GREY}; border-radius:6px; "
+            f"text-align:center; font-size:0.85rem; color:{BRAND_CHARCOAL};'>"
+            f"📊 Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows "
+            f"(filters applied)</div>",
+            unsafe_allow_html=True,
+        )
+
+    # ── Tab Routing ─────────────────────────────────────────────────────────
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📊 Overview",
+        "📋 Pending & Nominations",
+        "🎯 Skill Analytics",
+        "🏢 Product Penetration",
+        "👥 Unique Manpower",
+        "🔍 Audit & Exceptions",
+    ])
+
+    with tab1:
+        render_overview(df_filtered, kpis, filters)
+
+    with tab2:
+        render_backlog(backlog_df, nomination_df, filters)
+
+    with tab3:
+        render_skill(df_filtered, filters)
+
+    with tab4:
+        render_penetration(df_filtered, filters)
+
+    with tab5:
+        render_manpower(df_filtered, filters)
+
+    with tab6:
+        unresolved_df = unified_df[unified_df.get("Match_Confidence", "") == "UNRESOLVED"] if "Match_Confidence" in unified_df.columns else pd.DataFrame()
+        render_audit(df_filtered, duplicate_df, unresolved_df)
+
+else:
+    # ── Landing Page ────────────────────────────────────────────────────────
     st.markdown(f"""
-    <div class="custom-alert" style="border-left: 5px solid {BRAND_RED};">
-        <h3 style="color:{BRAND_RED}; margin-top:0;">100% Offline Air-Gapped Portal</h3>
-        <p>This system operates entirely locally on your workstation. No external cloud or neural model APIs are utilized.</p>
-        <p><strong>To begin:</strong> Use the sidebar controls to upload either the <strong>Active Manpower Roster</strong> and its matching <strong>Training Logs</strong>, or load a previously consolidated <strong>Master Excel File</strong>.</p>
+    <div style="text-align:center; padding:80px 20px;">
+        <div style="font-size:5rem;">🚜</div>
+        <h2 style="color:{BRAND_DARK_CORE}; margin-top:10px;">
+            Upload Files to Begin
+        </h2>
+        <p style="color:{BRAND_CHARCOAL}; font-size:1.1rem; max-width:600px; margin:auto;">
+            Upload your Manpower Roster and Training Data files using the sidebar.
+            Assign file types and click <b>Run Pipeline</b> to process.
+        </p>
+        <div style="margin-top:30px; padding:20px; background:{BRAND_LIGHT_GREY};
+                    border-radius:10px; display:inline-block;">
+            <div style="font-size:0.9rem; color:{BRAND_CHARCOAL};">
+                <b>Supported:</b> .xlsx, .csv · <b>Max files:</b> 4 ·
+                <b>Max size:</b> 60MB per file<br>
+                <b>100% Offline</b> · <b>Zero Row Loss</b> · <b>No AI/LLMs</b>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.image("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=600&auto=format&fit=crop", width=400, caption="Enterprise Training Analytics Portal")
-    st.stop()
-
-# ── READ-ONLY FILTER CONTROLS (EXPLORATION ONLY) ──────────────────────────────
-st.markdown("### 🚜 Dashboard Filters")
-filter_row1, filter_row2 = st.columns(2)
-
-with filter_row1:
-    available_zones = sorted(df_master['Zone'].dropna().unique())
-    selected_zones = st.multiselect("Select Zones:", available_zones, default=available_zones)
-    
-    allowed_states = []
-    for z in selected_zones:
-        allowed_states.extend(ZONE_STATE_MAP.get(z, []))
-    available_states = sorted(df_master[df_master['Zone'].isin(selected_zones)]['State'].dropna().unique())
-    selected_states = st.multiselect("Select States:", available_states, default=available_states)
-
-with filter_row2:
-    available_desigs = sorted(df_master['Designation'].dropna().unique())
-    selected_desigs = st.multiselect("Select Designations:", available_desigs, default=available_desigs)
-    
-    available_recalls = sorted(df_master['RECALL_STATUS'].dropna().unique())
-    selected_recalls = st.multiselect("Select Recall Statuses:", available_recalls, default=available_recalls)
-
-# Filter Dataframe (Exploration only, does not write back)
-df_filtered = df_master[
-    (df_master['Zone'].isin(selected_zones)) &
-    (df_master['State'].isin(selected_states)) &
-    (df_master['Designation'].isin(selected_desigs)) &
-    (df_master['RECALL_STATUS'].isin(selected_recalls))
-]
-
-# Unique Dealer Filter
-available_dealers = sorted(df_filtered['Dealer Name'].dropna().unique())
-selected_dealers = st.sidebar.multiselect("Filter by Dealership:", available_dealers, default=[])
-if selected_dealers:
-    df_filtered = df_filtered[df_filtered['Dealer Name'].isin(selected_dealers)]
-
-# ── TOP LEVEL METRICS ─────────────────────────────────────────────────────────
-st.markdown("---")
-kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
-
-total_emp = df_filtered['Star ID'].nunique()
-trained_emp = df_filtered[df_filtered['Training year'].notnull()]['Star ID'].nunique()
-coverage = (trained_emp / total_emp * 100) if total_emp > 0 else 0
-overdue_critical_count = df_filtered[df_filtered['RECALL_STATUS'].isin(['CRITICAL', 'OVERDUE'])]['Star ID'].nunique()
-missing_pre = df_filtered[df_filtered.get('MISSING_PREREQUISITE_FLAG', False)]['Star ID'].nunique()
-
-with kpi_col1:
-    st.markdown(f'<div class="kpi-card"><div class="kpi-label">TOTAL HEADCOUNT</div><div class="kpi-value">{total_emp:,}</div><div class="kpi-desc">ACTIVE TECHNICIANS</div></div>', unsafe_allow_html=True)
-with kpi_col2:
-    st.markdown(f'<div class="kpi-card" style="border-top-color:#4D4D4F;"><div class="kpi-label">TRAINING COVERAGE</div><div class="kpi-value">{coverage:.1f}%</div><div class="kpi-desc">COMPLETED AT LEAST 1 TRAINING</div></div>', unsafe_allow_html=True)
-with kpi_col3:
-    st.markdown(f'<div class="kpi-card" style="border-top-color:#FF8C00;"><div class="kpi-label">CRITICAL / OVERDUE</div><div class="kpi-value">{overdue_critical_count:,}</div><div class="kpi-desc">IMMEDIATE RECALL REQUIRED</div></div>', unsafe_allow_html=True)
-with kpi_col4:
-    st.markdown(f'<div class="kpi-card" style="border-top-color:#231F20;"><div class="kpi-label">MISSING PREREQUISITES</div><div class="kpi-value">{missing_pre:,}</div><div class="kpi-desc">SKILL LADDER ANOMALIES</div></div>', unsafe_allow_html=True)
-
-# ── EXPORT AND DATA TABLE ─────────────────────────────────────────────────────
-st.markdown("### 📊 Live Data & Exports")
-col_export1, col_export2 = st.columns(2)
-
-with col_export1:
-    # Full Master Export
-    excel_data_master = export_to_excel(df_master, stats)
-    st.download_button(
-        label="🚜 Download Full Master Database (Excel)",
-        data=excel_data_master,
-        file_name=f"MAHINDRA_MASTER_FULL_{datetime.date.today().strftime('%Y%m%d')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
-
-with col_export2:
-    # Filtered Export (Passing the filtered subset and raw stats to preserve summary page)
-    # The stats will remain global, but the master sheet will be filtered.
-    excel_data_filtered = export_to_excel(df_filtered, stats)
-    st.download_button(
-        label="📥 Download Current Filtered View (Excel)",
-        data=excel_data_filtered,
-        file_name=f"MAHINDRA_FILTERED_VIEW_{datetime.date.today().strftime('%Y%m%d')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
-
-st.dataframe(df_filtered, use_container_width=True, height=600)
