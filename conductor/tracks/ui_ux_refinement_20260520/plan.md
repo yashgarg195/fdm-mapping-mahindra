@@ -10,13 +10,13 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Tab Removals and Basic UI Cleanup' (Protocol in workflow.md)
 
 ## Phase 2: Pending & Nominations Enhancements
-- [ ] Task: Add Eligibility Timeframe filter
-    - [ ] Write Tests: Add tests to verify filtering logic based on timeframe thresholds (>= 1 year, >= 6 months, etc.).
-    - [ ] Implement Feature: Update the Pending & Nominations tab and corresponding analytics logic to include and process the new timeframe filter.
-- [ ] Task: Implement Excel download for filtered data
-    - [ ] Write Tests: Test the generation of the Excel file for filtered data using the export functionality.
-    - [ ] Implement Feature: Add a download button in the Pending & Nominations tab that triggers the Excel export function with the currently filtered dataset.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Pending & Nominations Enhancements' (Protocol in workflow.md)
+- [x] Task: Add Eligibility Timeframe filter
+    - [x] Write Tests: Add tests to verify filtering logic based on timeframe thresholds (>= 1 year, >= 6 months, etc.).
+    - [x] Implement Feature: Update the Pending & Nominations tab and corresponding analytics logic to include and process the new timeframe filter.
+- [x] Task: Implement Excel download for filtered data
+    - [x] Write Tests: Test the generation of the Excel file for filtered data using the export functionality.
+    - [x] Implement Feature: Add a download button in the Pending & Nominations tab that triggers the Excel export function with the currently filtered dataset.
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Pending & Nominations Enhancements' (Protocol in workflow.md)
 
 ## Phase 3: Skill Analytics Refinement
 - [ ] Task: Update Skill Score calculation logic

@@ -16,11 +16,35 @@ def render_backlog(backlog_df, nomination_df, filters):
         st.info("No backlog data available. Run the pipeline first.")
         return
 
+    # ── Eligibility Timeframe Filter ────────────────────────────────────────
+    col_filter, _ = st.columns([1, 3])
+    with col_filter:
+        timeframe = st.selectbox(
+            "Eligibility Timeframe",
+            options=["All", ">= 1 month", ">= 3 months", ">= 6 months", ">= 1 year"],
+            index=0
+        )
+    
+    # Apply filter to backlog_df
+    filtered_backlog = backlog_df.copy()
+    if timeframe == ">= 1 month":
+        filtered_backlog = filtered_backlog[filtered_backlog["Pending_Age_Months"] >= 1]
+    elif timeframe == ">= 3 months":
+        filtered_backlog = filtered_backlog[filtered_backlog["Pending_Age_Months"] >= 3]
+    elif timeframe == ">= 6 months":
+        filtered_backlog = filtered_backlog[filtered_backlog["Pending_Age_Months"] >= 6]
+    elif timeframe == ">= 1 year":
+        filtered_backlog = filtered_backlog[filtered_backlog["Pending_Age_Months"] >= 12]
+
+    if filtered_backlog.empty:
+        st.warning("No records match the selected eligibility timeframe.")
+        return
+
     # ── KPI Cards ───────────────────────────────────────────────────────────
     c1, c2, c3 = st.columns(3)
-    total_backlog = len(backlog_df)
-    critical_count = (backlog_df.get("Pending_Category", pd.Series(dtype=str)) == "CRITICAL").sum()
-    avg_age = backlog_df["Pending_Age_Months"].mean() if "Pending_Age_Months" in backlog_df.columns else 0
+    total_backlog = len(filtered_backlog)
+    critical_count = (filtered_backlog.get("Pending_Category", pd.Series(dtype=str)) == "CRITICAL").sum()
+    avg_age = filtered_backlog["Pending_Age_Months"].mean() if "Pending_Age_Months" in filtered_backlog.columns else 0
 
     with c1:
         st.markdown(style_kpi_card("TOTAL BACKLOG", format_count(total_backlog), "PENDING EMPLOYEES", BRAND_RED), unsafe_allow_html=True)
@@ -30,32 +54,31 @@ def render_backlog(backlog_df, nomination_df, filters):
         st.markdown(style_kpi_card("AVG PENDING AGE", f"{avg_age:.1f} mo", "MONTHS WAITING", BRAND_CHARCOAL), unsafe_allow_html=True)
 
     # ── Nomination Priority Table ───────────────────────────────────────────
-    st.markdown("#### 🏆 Nomination Priority List")
-    if nomination_df is not None and not nomination_df.empty:
-        display_cols = [c for c in ["Nomination_Rank", "Star ID", "Name", "Designation",
-                        "Dealer Code", "Dealer Name", "Zone", "State",
-                        "Pending_Age_Months", "Training_Priority_Score", "Training_Status"]
-                        if c in nomination_df.columns]
-        st.dataframe(nomination_df[display_cols], height=400)
+    st.markdown("#### 🏆 Filtered Backlog & Nomination List")
+    
+    display_cols = [c for c in ["Nomination_Rank", "Star ID", "Name", "Designation",
+                    "Dealer Code", "Dealer Name", "Zone", "State",
+                    "Pending_Age_Months", "Training_Priority_Score", "Training_Status"]
+                    if c in filtered_backlog.columns]
+    
+    st.dataframe(filtered_backlog[display_cols], height=400)
 
-        # Download button
-        buf = io.BytesIO()
-        nomination_df[display_cols].to_excel(buf, index=False, engine="xlsxwriter")
-        buf.seek(0)
-        st.download_button(
-            "📥 Download Nomination List (Excel)", buf,
-            file_name="MAHINDRA_NOMINATION_LIST.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    else:
-        st.info("No nominations generated.")
+    # Download button for filtered backlog
+    buf = io.BytesIO()
+    filtered_backlog[display_cols].to_excel(buf, index=False, engine="xlsxwriter")
+    buf.seek(0)
+    st.download_button(
+        "📥 Download Filtered Backlog (Excel)", buf,
+        file_name="MAHINDRA_FILTERED_BACKLOG.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
     # ── Charts ──────────────────────────────────────────────────────────────
     chart1, chart2 = st.columns(2)
 
     with chart1:
         st.markdown("#### Dealership Backlog Ranking")
-        dr = dealership_backlog_rank(backlog_df)
+        dr = dealership_backlog_rank(filtered_backlog)
         if not dr.empty:
             top15 = dr.head(15)
             fig = px.bar(
@@ -69,7 +92,7 @@ def render_backlog(backlog_df, nomination_df, filters):
 
     with chart2:
         st.markdown("#### Pending Aging Distribution")
-        aging = backlog_aging_report(backlog_df)
+        aging = backlog_aging_report(filtered_backlog)
         if not aging.empty:
             fig = px.bar(
                 aging, x="Aging_Bucket", y="Count",
