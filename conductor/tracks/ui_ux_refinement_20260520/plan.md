@@ -9,7 +9,7 @@
     - [x] Implement Feature: Remove "FY training trend" and "monthly training" graphs from the Overview tab.
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Tab Removals and Basic UI Cleanup' (Protocol in workflow.md)
 
-## Phase 2: Pending & Nominations Enhancements
+## Phase 2: Pending & Nominations Enhancements [checkpoint: ab3991d]
 - [x] Task: Add Eligibility Timeframe filter
     - [x] Write Tests: Add tests to verify filtering logic based on timeframe thresholds (>= 1 year, >= 6 months, etc.).
     - [x] Implement Feature: Update the Pending & Nominations tab and corresponding analytics logic to include and process the new timeframe filter.
