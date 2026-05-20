@@ -1,0 +1,15 @@
+# Ignore corporate sensitive documents
+*.xlsx
+*.xls
+*.csv
+
+# Python cache and files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE and system files
+.vscode/
+.idea/
+.DS_Store
+.streamlit/
