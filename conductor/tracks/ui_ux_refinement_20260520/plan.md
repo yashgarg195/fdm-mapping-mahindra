@@ -1,13 +1,13 @@
 # Implementation Plan - UI/UX Refinement and Analytics Updates
 
 ## Phase 1: Tab Removals and Basic UI Cleanup
-- [ ] Task: Remove Product Penetration section
-    - [ ] Write Tests: Ensure navigation and routing tests do not expect the Product Penetration tab.
-    - [ ] Implement Feature: Remove the Product Penetration tab integration and any corresponding routing links.
-- [ ] Task: Clean up Overview Tab graphs
-    - [ ] Write Tests: Update tests to verify FY and monthly trend graphs are not rendered.
-    - [ ] Implement Feature: Remove "FY training trend" and "monthly training" graphs from the Overview tab.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Tab Removals and Basic UI Cleanup' (Protocol in workflow.md)
+- [x] Task: Remove Product Penetration section
+    - [x] Write Tests: Ensure navigation and routing tests do not expect the Product Penetration tab.
+    - [x] Implement Feature: Remove the Product Penetration tab integration and any corresponding routing links.
+- [x] Task: Clean up Overview Tab graphs
+    - [x] Write Tests: Update tests to verify FY and monthly trend graphs are not rendered.
+    - [x] Implement Feature: Remove "FY training trend" and "monthly training" graphs from the Overview tab.
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Tab Removals and Basic UI Cleanup' (Protocol in workflow.md)
 
 ## Phase 2: Pending & Nominations Enhancements
 - [ ] Task: Add Eligibility Timeframe filter

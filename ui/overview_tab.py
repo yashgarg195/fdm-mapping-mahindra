@@ -1,12 +1,10 @@
 """
-Overview Tab — KPI cards, FY trend line, MoM bar chart.
+Overview Tab — KPI cards.
 """
 import streamlit as st
 import plotly.express as px
 from config.constants import BRAND_RED, BRAND_CHARCOAL, BRAND_DARK_CORE
 from utils.formatting_utils import style_kpi_card, format_count, format_pct
-from analytics.overview import fy_trend, mom_trend
-
 
 def render_overview(unified_df, kpis, filters):
     """Render the Overview tab."""
@@ -33,38 +31,3 @@ def render_overview(unified_df, kpis, filters):
             "ADVANCED TECHNICIANS", BRAND_DARK_CORE
         ), unsafe_allow_html=True)
 
-    # ── Charts ──────────────────────────────────────────────────────────────
-    chart1, chart2 = st.columns(2)
-
-    with chart1:
-        st.markdown("#### FY Training Trend")
-        fy_data = fy_trend(unified_df)
-        if not fy_data.empty:
-            fig = px.line(
-                fy_data, x="FY", y="Unique_Employees",
-                markers=True,
-                color_discrete_sequence=[BRAND_RED],
-            )
-            fig.update_layout(
-                plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20),
-                yaxis_title="Unique Employees Trained",
-            )
-            st.plotly_chart(fig, key="fy_trend_chart")
-        else:
-            st.info("No FY trend data available.")
-
-    with chart2:
-        st.markdown("#### Monthly Training Volume")
-        mom_data = mom_trend(unified_df)
-        if not mom_data.empty:
-            fig = px.bar(
-                mom_data, x="Month", y="Training_Count",
-                color_discrete_sequence=[BRAND_CHARCOAL],
-            )
-            fig.update_layout(
-                plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20),
-                yaxis_title="Training Count",
-            )
-            st.plotly_chart(fig, key="mom_trend_chart")
-        else:
-            st.info("No monthly trend data available.")

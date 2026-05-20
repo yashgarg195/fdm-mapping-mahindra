@@ -383,11 +383,10 @@ if st.session_state.get("pipeline_complete"):
         )
 
     # ── Tab Routing ─────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Overview",
         "📋 Pending & Nominations",
         "🎯 Skill Analytics",
-        "🏢 Product Penetration",
         "👥 Unique Manpower",
         "🔍 Audit & Exceptions",
     ])
@@ -402,12 +401,9 @@ if st.session_state.get("pipeline_complete"):
         render_skill(df_filtered, filters)
 
     with tab4:
-        render_penetration(df_filtered, filters)
-
-    with tab5:
         render_manpower(df_filtered, filters)
 
-    with tab6:
+    with tab5:
         unresolved_df = unified_df[unified_df.get("Match_Confidence", "") == "UNRESOLVED"] if "Match_Confidence" in unified_df.columns else pd.DataFrame()
         render_audit(df_filtered, duplicate_df, unresolved_df)
 
@@ -433,5 +429,8 @@ else:
                 <b>100% Offline</b> · <b>Zero Row Loss</b> · <b>No AI/LLMs</b>
             </div>
         </div>
+    </div>
+    """, unsafe_allow_html=True)
+      </div>
     </div>
     """, unsafe_allow_html=True)
