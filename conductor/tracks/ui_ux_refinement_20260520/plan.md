@@ -18,7 +18,7 @@
     - [x] Implement Feature: Add a download button in the Pending & Nominations tab that triggers the Excel export function with the currently filtered dataset.
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Pending & Nominations Enhancements' (Protocol in workflow.md)
 
-## Phase 3: Skill Analytics Refinement
+## Phase 3: Skill Analytics Refinement [checkpoint: 1265fdd]
 - [x] Task: Update Skill Score calculation logic
     - [x] Write Tests: Add tests to ensure only trained individuals are included in the denominator for skill calculations.
     - [x] Implement Feature: Modify logic in the skill analytics module to exclude untrained individuals from the skill score.
