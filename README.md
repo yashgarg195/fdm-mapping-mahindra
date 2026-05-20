@@ -32,46 +32,68 @@ streamlit run app.py
 
 ## 📁 Project Structure
 
-```
-├── app.py                          # Streamlit entry point (no business logic)
-├── start_dashboard.bat             # One-click launcher with optional tunnel
-├── config/
-│   ├── constants.py                # All constants, mappings, column aliases
-│   └── settings.py                 # Tunable thresholds and weights
-├── core/
-│   ├── etl.py                      # File loading and DataFrame cleaning
-│   ├── cleansing.py                # Name/contact/Aadhar normalization
-│   ├── deduplication.py            # Duplicate detection (never deletes)
-│   ├── fuzzy_matching.py           # rapidfuzz + jellyfish scoring
-│   ├── matching.py                 # 7-pass identity resolution engine
-│   ├── scoring.py                  # Skill/priority/readiness scoring
-│   └── training_pipeline.py        # Rolling backlog and nomination engine
-├── analytics/
-│   ├── kpi_engine.py               # All KPI computations
-│   ├── overview.py                 # National summary, FY/MoM trends
-│   ├── manpower.py                 # State/zone manpower tables
-│   ├── penetration.py              # Dealership penetration metrics
-│   ├── skill_analytics.py          # Skill distribution and regression
-│   └── backlog_analytics.py        # Aging reports and dealer rankings
-├── ui/
-│   ├── sidebar.py                  # File upload, type assignment, filters
-│   ├── overview_tab.py             # Tab 1: KPIs and trends
-│   ├── backlog_tab.py              # Tab 2: Pending & nominations
-│   ├── skill_tab.py                # Tab 3: Skill analytics
-│   ├── penetration_tab.py          # Tab 4: Product penetration
-│   ├── manpower_tab.py             # Tab 5: Unique manpower
-│   └── audit_tab.py                # Tab 6: Audit & exceptions
-├── export/
-│   └── excel_export.py             # 8-sheet styled Excel via BytesIO
-├── storage/
-│   └── mapping_store.py            # In-memory SQLite mapping cache
-├── utils/
-│   ├── date_utils.py               # Date parsing, FY computation
-│   ├── formatting_utils.py         # Display formatting and KPI cards
-│   └── logging_utils.py            # Structured ETL/matching logging
-├── requirements.txt
-└── README.md
-```
+All core component links are clickable below:
+
+* [app.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/app.py) — Streamlit entry point (no business logic)
+* [start_dashboard.bat](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/start_dashboard.bat) — One-click launcher with optional tunnel
+* **config/**
+  * [constants.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/config/constants.py) — All constants, mappings, column aliases
+  * [settings.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/config/settings.py) — Tunable thresholds and weights
+* **core/**
+  * [etl.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/core/etl.py) — File loading and DataFrame cleaning
+  * [cleansing.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/core/cleansing.py) — Name/contact/Aadhar normalization
+  * [deduplication.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/core/deduplication.py) — Duplicate detection (never deletes)
+  * [fuzzy_matching.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/core/fuzzy_matching.py) — rapidfuzz + jellyfish scoring
+  * [matching.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/core/matching.py) — 7-pass identity resolution engine
+  * [scoring.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/core/scoring.py) — Skill/priority/readiness scoring
+  * [training_pipeline.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/core/training_pipeline.py) — Rolling backlog and nomination engine
+* **analytics/**
+  * [kpi_engine.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/analytics/kpi_engine.py) — All KPI computations
+  * [overview.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/analytics/overview.py) — National summary, FY/MoM trends
+  * [manpower.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/analytics/manpower.py) — State/zone manpower tables
+  * [penetration.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/analytics/penetration.py) — Dealership penetration metrics
+  * [skill_analytics.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/analytics/skill_analytics.py) — Skill distribution and regression
+  * [backlog_analytics.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/analytics/backlog_analytics.py) — Aging reports and dealer rankings
+* **ui/**
+  * [sidebar.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/ui/sidebar.py) — File upload, type assignment, filters
+  * [overview_tab.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/ui/overview_tab.py) — Tab 1: KPIs and trends
+  * [backlog_tab.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/ui/backlog_tab.py) — Tab 2: Pending & nominations
+  * [skill_tab.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/ui/skill_tab.py) — Tab 3: Skill analytics
+  * [penetration_tab.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/ui/penetration_tab.py) — Tab 4: Product penetration
+  * [manpower_tab.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/ui/manpower_tab.py) — Tab 5: Unique manpower
+  * [audit_tab.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/ui/audit_tab.py) — Tab 6: Audit & exceptions
+* **export/**
+  * [excel_export.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/export/excel_export.py) — 8-sheet styled Excel via BytesIO
+* **storage/**
+  * [mapping_store.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/storage/mapping_store.py) — In-memory SQLite mapping cache
+* **utils/**
+  * [date_utils.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/utils/date_utils.py) — Date parsing, FY computation
+  * [formatting_utils.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/utils/formatting_utils.py) — Display formatting and KPI cards
+  * [logging_utils.py](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/utils/logging_utils.py) — Structured ETL/matching logging
+
+---
+
+## 📥 Handling Input Excel Files (How the Mapping Engine Processes Data)
+
+When the user uploads Excel files into the sidebar, the system executes a structured pipeline:
+
+1. **Upload & Role Assignment**:
+   * The user uploads one or more files.
+   * Each file is assigned a role: **Manpower Roster** (the ground-truth directory of active employees) or **Training History** (records of training sessions, years, and skill levels).
+2. **Column Normalization (Mapping & Standardization)**:
+   * The system automatically scans the columns and resolves naming variations (e.g., mapping `STAR_ID`, `star id`, `StarID` to the canonical `Star ID`).
+3. **Data Cleansing**:
+   * Standardizes name strings (expands common abbreviations like `MD` to `MOHAMMAD`, `KMR` to `KUMAR`, strips titles like `MR`).
+   * Normalizes dealer codes, phone numbers (removes spaces, country codes, formats to 10 digits), and Aadhar numbers.
+4. **Exact & Fuzzy Duplicate Logging**:
+   * Identifies exact duplicate rows (same Star ID or same training session) and flags them.
+   * Performs fuzzy duplicate clustering within dealer codes to find different Star IDs with near-identical names (flags as `SUSPECT_DUPLICATE`).
+5. **7-Pass Identity Resolution**:
+   * Resolves the identities of trainees in the **Training History** files against the master **Manpower Roster** using progressive passes (Exact ID, Exact Composite, Fuzzy Name + Same Dealer, Dealer-Transfer Global search, Phonetic, Probabilistic).
+   * **Real Name Verification**: Even for exact Star ID matches, it validates names to identify mismatches (producing realistic HIGH/MEDIUM/LOW confidence ratings).
+6. **KPI Calculation & Status Assignment**:
+   * Evaluates training status for each employee: `COMPLETED` (trained this year with skill gains), `ATTENDED` (trained this year without skill gains), `PENDING` (needs refresher), `ELIGIBLE` (never trained but in a technical role), or `NOT_TRAINED` (never trained, non-technical role).
+   * Builds the rolling backlog and generates priority-based training recommendations (nomination lists).
 
 ---
 
@@ -79,7 +101,7 @@ streamlit run app.py
 
 | Pass | Strategy | Confidence |
 |------|----------|------------|
-| 1 | Exact Star ID / Aadhar / Emp Code | HIGH |
+| 1 | Exact Star ID / Aadhar / Emp Code (Name Validated) | HIGH/MEDIUM/LOW |
 | 2 | Exact Name + Dealer + Contact | HIGH/MEDIUM |
 | 3 | Fuzzy Name + Same Dealer | MEDIUM/LOW |
 | 4 | Dealer-Transfer-Aware (global name via rapidfuzz C++) | LOW |
