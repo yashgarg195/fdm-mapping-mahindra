@@ -28,10 +28,10 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Skill Analytics Refinement' (Protocol in workflow.md)
 
 ## Phase 4: Unique Manpower and Audit UI Updates
-- [ ] Task: Add filters to Unique Manpower
-    - [ ] Write Tests: Create tests for Location, Role, and Training Status filters.
-    - [ ] Implement Feature: Update the Unique Manpower tab to include the new filters while preserving the Zone distribution chart.
-- [ ] Task: Rename and explain 'Fuzzy Match' in Audit
-    - [ ] Write Tests: Ensure the UI components in the Audit tab render the new labels and tooltips correctly.
-    - [ ] Implement Feature: Update the Audit tab to rename "Fuzzy" to "Possible Match" and add explanatory tooltips or text.
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Unique Manpower and Audit UI Updates' (Protocol in workflow.md)
+- [x] Task: Add filters to Unique Manpower
+    - [x] Write Tests: Create tests for Location, Role, and Training Status filters.
+    - [x] Implement Feature: Update the Unique Manpower tab to include the new filters while preserving the Zone distribution chart.
+- [x] Task: Rename and explain 'Fuzzy Match' in Audit
+    - [x] Write Tests: Ensure the UI components in the Audit tab render the new labels and tooltips correctly.
+    - [x] Implement Feature: Update the Audit tab to rename "Fuzzy" to "Possible Match" and add explanatory tooltips or text.
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Unique Manpower and Audit UI Updates' (Protocol in workflow.md)

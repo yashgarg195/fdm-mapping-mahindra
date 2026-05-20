@@ -54,8 +54,14 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
     else:
         st.success("No exact duplicate records detected.")
 
-    # ── Suspect Duplicates (Fuzzy Name Matches) ─────────────────────────────
-    st.markdown("#### Suspect Duplicates (Fuzzy Name Matches)")
+    # ── Suspect Duplicates (Possible Matches) ───────────────────────────────
+    st.markdown("#### Suspect Duplicates (Possible Matches) ℹ️")
+    st.markdown(
+        "<div style='font-size:0.9rem; color:#555; margin-bottom:15px;'>"
+        "<b>What is a Possible Match?</b> A Possible Match occurs when the system identifies two records with different IDs but very similar names (e.g., 'Amit Kumar' and 'Ameet Kumar') working at the same location. These are flagged for your review to ensure they aren't the same person entered twice."
+        "</div>", 
+        unsafe_allow_html=True
+    )
     if unified_df is not None and not unified_df.empty:
         suspect_col = None
         if "DATA_QUALITY_STATUS" in unified_df.columns:
@@ -80,7 +86,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                             "CROSS_ID_DUPLICATE_NOTE"] if c in suspects.columns]
             st.dataframe(suspects[display_cols] if display_cols else suspects, height=300)
         else:
-            st.success("No suspect duplicates detected.")
+            st.success("No possible matches detected.")
     else:
         st.info("No data loaded.")
 
