@@ -8,9 +8,9 @@ An enterprise-grade, 100% offline, air-gapped manpower identity resolution and t
 
 * **Local:** [http://localhost:8501](http://localhost:8501)
 * **Network:** [http://10.212.61.157:8501](http://10.212.61.157:8501)
-* **External:** [http://106.216.244.170:8501](http://106.216.244.170:8501)
+* **Global (Public):** [https://mahindra-training-dashboard.loca.lt](https://mahindra-training-dashboard.loca.lt) *(Temporary Tunnel)*
 
-*Last verified:* **2026-05-20 16:45 IST**
+*Last verified:* **2026-05-20 16:55 IST**
 
 ---
 
