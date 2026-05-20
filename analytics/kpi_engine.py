@@ -97,8 +97,8 @@ def compute_all_kpis(unified_df):
 
     # Dealerships at risk
     if "Dealer Code" in df.columns and "post_score" in df.columns:
-        dealer_specs = df.groupby("Dealer Code").apply(
-            lambda g: (g["post_score"].astype(int, errors="ignore") >= 3).sum()
+        dealer_specs = df.groupby("Dealer Code")["post_score"].apply(
+            lambda g: (g.astype(int, errors="ignore") >= 3).sum()
         )
         kpis["dealerships_at_risk_count"] = (
             dealer_specs < MIN_L3_L4_PER_DEALERSHIP

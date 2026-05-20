@@ -49,8 +49,7 @@ def render_sidebar():
     # ── Run Pipeline Button ─────────────────────────────────────────────────
     if result["uploaded_files"]:
         result["run_pipeline"] = st.sidebar.button(
-            "🚜 Run Pipeline",
-            use_container_width=True,
+            "🔴 Run Pipeline",
             type="primary",
         )
 

@@ -28,7 +28,7 @@ def render_manpower(unified_df, filters):
     st.markdown("#### State-wise Manpower Breakdown")
     state_df = state_manpower_table(unified_df)
     if not state_df.empty:
-        st.dataframe(state_df.sort_values("Total_Employees", ascending=False), use_container_width=True, height=400)
+        st.dataframe(state_df.sort_values("Total_Employees", ascending=False), height=400)
     else:
         st.info("No state-level data available.")
 
@@ -42,6 +42,6 @@ def render_manpower(unified_df, filters):
             color_discrete_map={"Trained_Count": BRAND_RED, "Untrained_Count": "#E6E7E8"},
         )
         fig.update_layout(plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20), yaxis_title="Employees", legend_title="")
-        st.plotly_chart(fig, key="zone_manpower_chart", use_container_width=True)
+        st.plotly_chart(fig, key="zone_manpower_chart")
     else:
         st.info("No zone-level data available.")

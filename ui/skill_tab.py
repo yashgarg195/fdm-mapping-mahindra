@@ -54,7 +54,7 @@ def render_skill(unified_df, filters):
                 color_discrete_sequence=[BRAND_CHARCOAL, "#90EE90", "#FFD700", "#FF8C00", BRAND_RED, "#E6E7E8"],
             )
             fig.update_layout(plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20), showlegend=False)
-            st.plotly_chart(fig, key="skill_dist_chart", use_container_width=True)
+            st.plotly_chart(fig, key="skill_dist_chart")
         else:
             st.info("No skill distribution data.")
 
@@ -71,7 +71,7 @@ def render_skill(unified_df, filters):
                         aspect="auto",
                     )
                     fig.update_layout(margin=dict(t=20, b=20, l=20, r=20))
-                    st.plotly_chart(fig, key="uplift_heatmap", use_container_width=True)
+                    st.plotly_chart(fig, key="uplift_heatmap")
                 else:
                     st.info("Not enough data for heatmap.")
             except Exception:
@@ -84,7 +84,7 @@ def render_skill(unified_df, filters):
     reg = regression_cases(df)
     if not reg.empty:
         st.markdown(f"**{len(reg)} records** where post-skill < pre-skill")
-        st.dataframe(reg, use_container_width=True, height=300)
+        st.dataframe(reg, height=300)
     else:
         st.success("No skill regressions detected.")
 

@@ -6,6 +6,7 @@ No business logic here — all delegated to modules.
 import streamlit as st
 import pandas as pd
 import datetime
+import time
 
 # ── Config & Constants ──────────────────────────────────────────────────────
 from config.constants import (
@@ -47,13 +48,14 @@ from utils.logging_utils import (
 # ═══════════════════════════════════════════════════════════════════════════
 st.set_page_config(
     page_title="Mahindra Training Analytics & Manpower Intelligence",
-    page_icon="🚜",
+    page_icon="🔴",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CUSTOM CSS — Mahindra & Mahindra Tractors Theme
+# Fixed: Dark text on white background, proper contrast everywhere
 # ═══════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
 <style>
@@ -64,6 +66,12 @@ st.markdown(f"""
     }}
     .stApp {{
         background-color: #F8F9FA;
+        color: #231F20;
+    }}
+    /* Ensure all main-area text is dark */
+    .stApp .stMarkdown, .stApp p, .stApp span, .stApp label,
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
+        color: #231F20 !important;
     }}
     header[data-testid="stHeader"] {{
         background-color: {BRAND_DARK_CORE};
@@ -76,20 +84,26 @@ st.markdown(f"""
         border-radius: 6px 6px 0 0;
         padding: 8px 20px;
         font-weight: 600;
-        color: {BRAND_CHARCOAL};
+        color: {BRAND_CHARCOAL} !important;
     }}
     .stTabs [aria-selected="true"] {{
         background-color: {BRAND_RED} !important;
         color: white !important;
     }}
+    /* Sidebar: dark background, white text */
     div[data-testid="stSidebar"] {{
         background-color: {BRAND_DARK_CORE};
         color: white;
     }}
     div[data-testid="stSidebar"] label,
-    div[data-testid="stSidebar"] .stMarkdown {{
+    div[data-testid="stSidebar"] .stMarkdown,
+    div[data-testid="stSidebar"] .stMarkdown p,
+    div[data-testid="stSidebar"] .stMarkdown h2,
+    div[data-testid="stSidebar"] .stMarkdown h3,
+    div[data-testid="stSidebar"] .stMarkdown span {{
         color: white !important;
     }}
+    /* Buttons */
     .stButton>button[kind="primary"] {{
         background-color: {BRAND_RED};
         color: white;
@@ -108,11 +122,22 @@ st.markdown(f"""
         border: none;
         border-radius: 6px;
     }}
+    /* Metric values — dark text on light bg */
+    [data-testid="stMetricValue"] {{
+        color: #231F20 !important;
+    }}
+    [data-testid="stMetricLabel"] {{
+        color: {BRAND_CHARCOAL} !important;
+    }}
+    /* Progress bar red theme */
+    .stProgress > div > div > div > div {{
+        background-color: {BRAND_RED};
+    }}
 </style>
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# HEADER
+# HEADER — Red Mahindra "M" badge (no green tractor)
 # ═══════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
 <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
@@ -146,136 +171,166 @@ if "audit_log" not in st.session_state or st.session_state["audit_log"] is None:
 sidebar_result = render_sidebar()
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PIPELINE EXECUTION (triggered by sidebar button)
+# PIPELINE EXECUTION — with real-time progress bar
 # ═══════════════════════════════════════════════════════════════════════════
 if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
-    with st.spinner("🚜 Running ETL + Identity Resolution Pipeline..."):
-        try:
-            with Timer("Full Pipeline"):
-                audit_log = []
+    progress_bar = st.progress(0, text="🔴 Starting pipeline...")
+    status_text = st.empty()
 
-                # ── Step 1: Load & Classify Files ───────────────────────────
-                manpower_dfs = []
-                training_dfs = []
+    try:
+        with Timer("Full Pipeline"):
+            audit_log = []
 
-                for uploaded_file in sidebar_result["uploaded_files"]:
-                    file_type = sidebar_result["file_assignments"].get(
-                        uploaded_file.name, "Other"
-                    )
-                    raw_df = load_file(uploaded_file)
-                    if raw_df.empty:
-                        st.sidebar.error(f"❌ Failed to load: {uploaded_file.name}")
-                        continue
+            # ── Step 1: Load & Classify Files (0% → 20%) ────────────────
+            status_text.markdown(f"**Step 1/5:** Loading and classifying files...")
+            manpower_dfs = []
+            training_dfs = []
 
-                    cleaned = clean_dataframe(raw_df)
-                    audit_log.append(build_audit_entry(
-                        "FILE_LOADED", f"Loaded {uploaded_file.name} as {file_type}",
-                        rows_affected=len(cleaned),
-                    ))
+            files = sidebar_result["uploaded_files"]
+            for i, uploaded_file in enumerate(files):
+                file_type = sidebar_result["file_assignments"].get(
+                    uploaded_file.name, "Other"
+                )
+                raw_df = load_file(uploaded_file)
+                if raw_df.empty:
+                    st.sidebar.error(f"❌ Failed to load: {uploaded_file.name}")
+                    continue
 
-                    if file_type == "Manpower Roster":
-                        manpower_dfs.append(standardize_columns(cleaned, ROSTER_COLUMNS))
-                    elif file_type in ("Training Data", "Additional Training Data"):
-                        training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
-                    else:
-                        # Try to auto-detect by column presence
-                        if "Star ID" in cleaned.columns and "Training year" in cleaned.columns:
-                            training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
-                        elif "Star ID" in cleaned.columns:
-                            manpower_dfs.append(standardize_columns(cleaned, ROSTER_COLUMNS))
-                        else:
-                            training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
-
-                if not manpower_dfs and not training_dfs:
-                    st.error("❌ No valid data files loaded. Please check file assignments.")
-                    st.stop()
-
-                # Concatenate
-                manpower_df = pd.concat(manpower_dfs, ignore_index=True) if manpower_dfs else pd.DataFrame(columns=ROSTER_COLUMNS)
-                training_df = pd.concat(training_dfs, ignore_index=True) if training_dfs else pd.DataFrame(columns=TRAINING_COLUMNS)
-
-                log_etl_event(len(manpower_df), len(manpower_df), 0, "Manpower")
-                log_etl_event(len(training_df), len(training_df), 0, "Training")
-
-                # ── Step 2: Deduplication ────────────────────────────────────
-                manpower_clean, manpower_dups = detect_duplicate_manpower(manpower_df)
-                training_clean, training_dups = detect_duplicate_training(training_df)
-                all_duplicates = pd.concat([manpower_dups, training_dups], ignore_index=True)
-
+                cleaned = clean_dataframe(raw_df)
                 audit_log.append(build_audit_entry(
-                    "DEDUPLICATION",
-                    f"Manpower: {len(manpower_dups)} dups, Training: {len(training_dups)} dups",
-                    rows_affected=len(all_duplicates),
+                    "FILE_LOADED", f"Loaded {uploaded_file.name} as {file_type}",
+                    rows_affected=len(cleaned),
                 ))
 
-                # ── Step 3: Identity Resolution ─────────────────────────────
-                if not training_clean.empty and not manpower_clean.empty:
-                    unified_df, stats = resolve_star_ids(training_clean, manpower_clean)
-                elif not manpower_clean.empty:
-                    # No training data — just use manpower
-                    unified_df = manpower_clean.copy()
-                    unified_df["Match_Method"] = "ROSTER_ONLY"
-                    unified_df["Match_Confidence"] = "HIGH"
-                    unified_df["Fuzzy_Score"] = 100.0
-                    unified_df["Phonetic_Score"] = 100.0
-                    unified_df["Matched_Candidate"] = unified_df.get("Star ID", "")
-                    stats = {"total_roster_count": len(manpower_clean), "total_training_input_count": 0,
-                             "total_master_count": len(unified_df), "matched_count": 0,
-                             "untrained_count": len(manpower_clean), "unresolved_count": 0,
-                             "confidence_distribution": {"HIGH": len(manpower_clean)},
-                             "passes_distribution": {"ROSTER_ONLY": len(manpower_clean)}}
+                if file_type == "Manpower Roster":
+                    manpower_dfs.append(standardize_columns(cleaned, ROSTER_COLUMNS))
+                elif file_type in ("Training Data", "Additional Training Data"):
+                    training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
                 else:
-                    unified_df = training_clean.copy()
-                    stats = {"total_roster_count": 0, "total_training_input_count": len(training_clean),
-                             "total_master_count": len(training_clean)}
+                    if "Star ID" in cleaned.columns and "Training year" in cleaned.columns:
+                        training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
+                    elif "Star ID" in cleaned.columns:
+                        manpower_dfs.append(standardize_columns(cleaned, ROSTER_COLUMNS))
+                    else:
+                        training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
 
-                audit_log.append(build_audit_entry(
-                    "IDENTITY_RESOLUTION",
-                    f"Resolved {stats.get('matched_count', 0)} records, "
-                    f"{stats.get('unresolved_count', 0)} unresolved",
-                    rows_affected=len(unified_df),
-                ))
-
-                # ── Step 4: Training Status & Backlog ───────────────────────
-                unified_df["Training_Status"] = unified_df.apply(assign_training_status, axis=1)
-                backlog_df = build_rolling_backlog(unified_df)
-                nomination_df = build_nomination_list(backlog_df)
-
-                audit_log.append(build_audit_entry(
-                    "BACKLOG_BUILT",
-                    f"Backlog: {len(backlog_df)} records, Nominations: {len(nomination_df)}",
-                    rows_affected=len(backlog_df),
-                ))
-
-                # ── Step 5: Persist to Session State ────────────────────────
-                st.session_state["unified_df"] = unified_df
-                st.session_state["duplicate_df"] = all_duplicates
-                st.session_state["backlog_df"] = backlog_df
-                st.session_state["nomination_df"] = nomination_df
-                st.session_state["kpis"] = compute_all_kpis(unified_df)
-                st.session_state["stats"] = stats
-                st.session_state["audit_log"] = audit_log
-                st.session_state["pipeline_complete"] = True
-
-                # Persist mappings to SQLite
-                persist_mappings(unified_df)
-
-                log_pipeline_event(
-                    f"Pipeline complete: {len(unified_df)} rows in unified master"
+                progress_bar.progress(
+                    int(20 * (i + 1) / len(files)),
+                    text=f"🔴 Loaded {uploaded_file.name} ({len(cleaned):,} rows)"
                 )
 
-            st.success(
-                f"✅ Pipeline complete! "
-                f"{len(unified_df):,} rows processed | "
-                f"{stats.get('matched_count', 0):,} matched | "
-                f"{stats.get('unresolved_count', 0):,} unresolved | "
-                f"0 rows lost"
+            if not manpower_dfs and not training_dfs:
+                st.error("❌ No valid data files loaded. Please check file assignments.")
+                progress_bar.empty()
+                status_text.empty()
+                st.stop()
+
+            manpower_df = pd.concat(manpower_dfs, ignore_index=True) if manpower_dfs else pd.DataFrame(columns=ROSTER_COLUMNS)
+            training_df = pd.concat(training_dfs, ignore_index=True) if training_dfs else pd.DataFrame(columns=TRAINING_COLUMNS)
+
+            log_etl_event(len(manpower_df), len(manpower_df), 0, "Manpower")
+            log_etl_event(len(training_df), len(training_df), 0, "Training")
+
+            # ── Step 2: Deduplication (20% → 30%) ────────────────────────
+            progress_bar.progress(20, text="🔴 Step 2/5: Detecting duplicates...")
+            status_text.markdown(f"**Step 2/5:** Detecting duplicates in {len(manpower_df):,} manpower + {len(training_df):,} training rows...")
+
+            manpower_clean, manpower_dups = detect_duplicate_manpower(manpower_df)
+            training_clean, training_dups = detect_duplicate_training(training_df)
+            all_duplicates = pd.concat([manpower_dups, training_dups], ignore_index=True)
+
+            audit_log.append(build_audit_entry(
+                "DEDUPLICATION",
+                f"Manpower: {len(manpower_dups)} dups, Training: {len(training_dups)} dups",
+                rows_affected=len(all_duplicates),
+            ))
+
+            progress_bar.progress(30, text=f"🔴 Found {len(all_duplicates)} duplicates")
+
+            # ── Step 3: Identity Resolution (30% → 70%) ─────────────────
+            progress_bar.progress(30, text="🔴 Step 3/5: Running 7-pass identity resolution...")
+            status_text.markdown(f"**Step 3/5:** Running 7-pass identity resolution on {len(training_clean):,} training rows against {len(manpower_clean):,} roster entries...")
+
+            if not training_clean.empty and not manpower_clean.empty:
+                unified_df, stats = resolve_star_ids(training_clean, manpower_clean)
+            elif not manpower_clean.empty:
+                unified_df = manpower_clean.copy()
+                unified_df["Match_Method"] = "ROSTER_ONLY"
+                unified_df["Match_Confidence"] = "HIGH"
+                unified_df["Fuzzy_Score"] = 100.0
+                unified_df["Phonetic_Score"] = 100.0
+                unified_df["Matched_Candidate"] = unified_df.get("Star ID", "")
+                stats = {"total_roster_count": len(manpower_clean), "total_training_input_count": 0,
+                         "total_master_count": len(unified_df), "matched_count": 0,
+                         "untrained_count": len(manpower_clean), "unresolved_count": 0,
+                         "confidence_distribution": {"HIGH": len(manpower_clean)},
+                         "passes_distribution": {"ROSTER_ONLY": len(manpower_clean)}}
+            else:
+                unified_df = training_clean.copy()
+                stats = {"total_roster_count": 0, "total_training_input_count": len(training_clean),
+                         "total_master_count": len(training_clean)}
+
+            audit_log.append(build_audit_entry(
+                "IDENTITY_RESOLUTION",
+                f"Resolved {stats.get('matched_count', 0)} records, "
+                f"{stats.get('unresolved_count', 0)} unresolved",
+                rows_affected=len(unified_df),
+            ))
+
+            progress_bar.progress(70, text=f"🔴 Resolved {stats.get('matched_count', 0):,} identities")
+
+            # ── Step 4: Training Status & Backlog (70% → 85%) ────────────
+            progress_bar.progress(70, text="🔴 Step 4/5: Building backlog & nominations...")
+            status_text.markdown(f"**Step 4/5:** Assigning training status and building rolling backlog...")
+
+            unified_df["Training_Status"] = unified_df.apply(assign_training_status, axis=1)
+            backlog_df = build_rolling_backlog(unified_df)
+            nomination_df = build_nomination_list(backlog_df)
+
+            audit_log.append(build_audit_entry(
+                "BACKLOG_BUILT",
+                f"Backlog: {len(backlog_df)} records, Nominations: {len(nomination_df)}",
+                rows_affected=len(backlog_df),
+            ))
+
+            progress_bar.progress(85, text=f"🔴 Backlog: {len(backlog_df):,} pending employees")
+
+            # ── Step 5: Compute KPIs & Persist (85% → 100%) ─────────────
+            progress_bar.progress(85, text="🔴 Step 5/5: Computing KPIs and generating dashboard...")
+            status_text.markdown(f"**Step 5/5:** Computing KPIs across {len(unified_df):,} unified records...")
+
+            st.session_state["unified_df"] = unified_df
+            st.session_state["duplicate_df"] = all_duplicates
+            st.session_state["backlog_df"] = backlog_df
+            st.session_state["nomination_df"] = nomination_df
+            st.session_state["kpis"] = compute_all_kpis(unified_df)
+            st.session_state["stats"] = stats
+            st.session_state["audit_log"] = audit_log
+            st.session_state["pipeline_complete"] = True
+
+            persist_mappings(unified_df)
+
+            log_pipeline_event(
+                f"Pipeline complete: {len(unified_df)} rows in unified master"
             )
 
-        except Exception as e:
-            st.error(f"❌ Pipeline error: {e}")
-            import traceback
-            st.code(traceback.format_exc())
+            progress_bar.progress(100, text="✅ Pipeline complete!")
+            status_text.empty()
+
+        st.success(
+            f"✅ Pipeline complete! "
+            f"{len(unified_df):,} rows processed | "
+            f"{stats.get('matched_count', 0):,} matched | "
+            f"{stats.get('unresolved_count', 0):,} unresolved | "
+            f"0 rows lost"
+        )
+
+    except Exception as e:
+        progress_bar.empty()
+        status_text.empty()
+        st.error(f"❌ Pipeline error: {e}")
+        import traceback
+        st.code(traceback.format_exc())
 
 # ═══════════════════════════════════════════════════════════════════════════
 # DASHBOARD TABS (only shown after pipeline runs)
@@ -344,20 +399,22 @@ if st.session_state.get("pipeline_complete"):
         render_audit(df_filtered, duplicate_df, unresolved_df)
 
 else:
-    # ── Landing Page ────────────────────────────────────────────────────────
+    # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────
     st.markdown(f"""
     <div style="text-align:center; padding:80px 20px;">
-        <div style="font-size:5rem;">🚜</div>
-        <h2 style="color:{BRAND_DARK_CORE}; margin-top:10px;">
+        <div style="background:{BRAND_RED}; color:white; font-size:4rem; font-weight:900;
+                    width:100px; height:100px; display:flex; align-items:center; justify-content:center;
+                    border-radius:16px; margin:auto;">M</div>
+        <h2 style="color:{BRAND_DARK_CORE} !important; margin-top:20px;">
             Upload Files to Begin
         </h2>
-        <p style="color:{BRAND_CHARCOAL}; font-size:1.1rem; max-width:600px; margin:auto;">
+        <p style="color:{BRAND_CHARCOAL} !important; font-size:1.1rem; max-width:600px; margin:auto;">
             Upload your Manpower Roster and Training Data files using the sidebar.
             Assign file types and click <b>Run Pipeline</b> to process.
         </p>
         <div style="margin-top:30px; padding:20px; background:{BRAND_LIGHT_GREY};
                     border-radius:10px; display:inline-block;">
-            <div style="font-size:0.9rem; color:{BRAND_CHARCOAL};">
+            <div style="font-size:0.9rem; color:{BRAND_CHARCOAL} !important;">
                 <b>Supported:</b> .xlsx, .csv · <b>Max files:</b> 4 ·
                 <b>Max size:</b> 60MB per file<br>
                 <b>100% Offline</b> · <b>Zero Row Loss</b> · <b>No AI/LLMs</b>

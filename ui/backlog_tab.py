@@ -36,7 +36,7 @@ def render_backlog(backlog_df, nomination_df, filters):
                         "Dealer Code", "Dealer Name", "Zone", "State",
                         "Pending_Age_Months", "Training_Priority_Score", "Training_Status"]
                         if c in nomination_df.columns]
-        st.dataframe(nomination_df[display_cols], use_container_width=True, height=400)
+        st.dataframe(nomination_df[display_cols], height=400)
 
         # Download button
         buf = io.BytesIO()
@@ -46,7 +46,6 @@ def render_backlog(backlog_df, nomination_df, filters):
             "📥 Download Nomination List (Excel)", buf,
             file_name="MAHINDRA_NOMINATION_LIST.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
         )
     else:
         st.info("No nominations generated.")
@@ -64,7 +63,7 @@ def render_backlog(backlog_df, nomination_df, filters):
                 color_discrete_sequence=[BRAND_RED],
             )
             fig.update_layout(plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20), yaxis_title="")
-            st.plotly_chart(fig, key="dealer_backlog_chart", use_container_width=True)
+            st.plotly_chart(fig, key="dealer_backlog_chart")
         else:
             st.info("No dealership backlog data.")
 
@@ -79,6 +78,6 @@ def render_backlog(backlog_df, nomination_df, filters):
                                     "6-12 months": "#FF8C00", "12+ months": BRAND_RED},
             )
             fig.update_layout(plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20), showlegend=False)
-            st.plotly_chart(fig, key="aging_chart", use_container_width=True)
+            st.plotly_chart(fig, key="aging_chart")
         else:
             st.info("No aging data.")

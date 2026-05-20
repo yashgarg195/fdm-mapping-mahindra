@@ -49,7 +49,7 @@ def render_overview(unified_df, kpis, filters):
                 plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20),
                 yaxis_title="Unique Employees Trained",
             )
-            st.plotly_chart(fig, key="fy_trend_chart", use_container_width=True)
+            st.plotly_chart(fig, key="fy_trend_chart")
         else:
             st.info("No FY trend data available.")
 
@@ -65,6 +65,6 @@ def render_overview(unified_df, kpis, filters):
                 plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20),
                 yaxis_title="Training Count",
             )
-            st.plotly_chart(fig, key="mom_trend_chart", use_container_width=True)
+            st.plotly_chart(fig, key="mom_trend_chart")
         else:
             st.info("No monthly trend data available.")

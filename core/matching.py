@@ -93,6 +93,8 @@ def _build_indexes(manpower_df):
         "ao_group": dict(ao_group),
         "contact_map": contact_map,
         "roster_records": roster_records,
+        "global_names": [rec["_name_clean"] for rec in roster_records if rec.get("_name_clean")],
+        "global_name_to_rec": {rec["_name_clean"]: rec for rec in roster_records if rec.get("_name_clean")}
     }
 
 
@@ -215,30 +217,29 @@ def _match_row(t_row, indexes):
 
     # ── PASS 4: Dealer-Transfer-Aware (name across ALL dealers) ─────────────
     if t_name and ENABLE_GLOBAL_FUZZY_PASS:
-        best_score = 0
-        best_rec = None
-        count = 0
-        for rec in indexes["roster_records"]:
-            r_name = rec.get("_name_clean")
-            if not r_name:
-                continue
-            score = fuzzy_name_match(t_name, r_name)
-            if score > best_score:
-                best_score = score
-                best_rec = rec
-            count += 1
-            if count >= MAX_CANDIDATES_PER_MATCH * 100:
-                break
-        if best_rec and best_score >= FUZZY_GLOBAL_THRESHOLD:
-            result.update({
-                "Match_Method": "PASS4_TRANSFER_MATCH",
-                "Match_Confidence": "LOW",
-                "Fuzzy_Score": best_score,
-                "Phonetic_Score": phonetic_match(t_name, best_rec.get("_name_clean", "")),
-                "Matched_Candidate": str(best_rec.get("_star_id_clean", "")),
-                "_matched_rec": best_rec,
-            })
-            return result
+        try:
+            from rapidfuzz import process, fuzz
+            match = process.extractOne(
+                t_name, 
+                indexes.get("global_names", []), 
+                scorer=fuzz.token_sort_ratio,
+                score_cutoff=FUZZY_GLOBAL_THRESHOLD
+            )
+            if match:
+                matched_name, best_score, _ = match
+                best_rec = indexes["global_name_to_rec"].get(matched_name)
+                if best_rec:
+                    result.update({
+                        "Match_Method": "PASS4_TRANSFER_MATCH",
+                        "Match_Confidence": "LOW",
+                        "Fuzzy_Score": round(best_score, 2),
+                        "Phonetic_Score": phonetic_match(t_name, best_rec.get("_name_clean", "")),
+                        "Matched_Candidate": str(best_rec.get("_star_id_clean", "")),
+                        "_matched_rec": best_rec,
+                    })
+                    return result
+        except Exception:
+            pass
 
     # ── PASS 5: Phonetic Matching (same dealer) ────────────────────────────
     if t_name and t_dealer:
@@ -275,7 +276,7 @@ def _match_row(t_row, indexes):
         if t_ao and t_ao in indexes["ao_group"]:
             search_pool = indexes["ao_group"][t_ao]
         if not search_pool:
-            search_pool = indexes["roster_records"][:MAX_CANDIDATES_PER_MATCH * 50]
+            search_pool = indexes["roster_records"][:MAX_CANDIDATES_PER_MATCH * 5]
 
         best_comp = 0
         best_rec = None

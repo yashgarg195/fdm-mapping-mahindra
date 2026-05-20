@@ -1,5 +1,7 @@
 """
 Audit Tab — Mapping confidence, duplicate log, unresolved queue, data quality.
+Fixed: Vectorized operations instead of row-by-row iteration for speed.
+Accurate data quality detection for future dates, regressions, and missing names.
 """
 import streamlit as st
 import plotly.express as px
@@ -26,10 +28,10 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 hole=0.4,
             )
             fig.update_layout(margin=dict(t=20, b=20, l=20, r=20))
-            st.plotly_chart(fig, key="conf_pie", use_container_width=True)
+            st.plotly_chart(fig, key="conf_pie")
 
         with chart2:
-            st.dataframe(conf_counts, use_container_width=True, height=200)
+            st.dataframe(conf_counts, height=200)
     else:
         st.info("No confidence data available.")
 
@@ -39,7 +41,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         st.markdown(f"**{len(duplicate_df)} duplicate records detected** (flagged, not deleted)")
         display_cols = [c for c in ["Star ID", "Name", "Dealer Code", "Dealer Name",
                         "DATA_QUALITY_STATUS", "DATA_QUALITY_REASON"] if c in duplicate_df.columns]
-        st.dataframe(duplicate_df[display_cols] if display_cols else duplicate_df, use_container_width=True, height=300)
+        st.dataframe(duplicate_df[display_cols] if display_cols else duplicate_df, height=300)
     else:
         st.success("No duplicate records detected.")
 
@@ -50,54 +52,54 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         display_cols = [c for c in ["Star ID", "Name", "Designation", "Dealer Code",
                         "Dealer Name", "Match_Method", "Fuzzy_Score", "Phonetic_Score"]
                         if c in unresolved_df.columns]
-        st.dataframe(unresolved_df[display_cols] if display_cols else unresolved_df, use_container_width=True, height=300)
+        st.dataframe(unresolved_df[display_cols] if display_cols else unresolved_df, height=300)
     else:
         st.success("No unresolved records. All identities mapped.")
 
-    # ── Data Quality Issues ─────────────────────────────────────────────────
+    # ── Data Quality Issues (VECTORIZED — no row iteration) ─────────────────
     st.markdown("#### Data Quality Issues")
     if unified_df is not None and not unified_df.empty:
-        issues = []
+        issues_frames = []
 
-        # Future dates
+        # Future dates — vectorized
         if "FUTURE_JOINING_FLAG" in unified_df.columns:
             future = unified_df[unified_df["FUTURE_JOINING_FLAG"] == True]
-            for _, row in future.iterrows():
-                issues.append({
-                    "Star ID": row.get("Star ID", ""),
-                    "Name": row.get("Name", ""),
-                    "Dealer Code": row.get("Dealer Code", ""),
-                    "Issue_Type": "FUTURE_DATE",
-                    "Issue_Description": f"Joining Date in future: {row.get('Joining Date', '')}",
-                })
+            if not future.empty:
+                f_df = future[["Star ID", "Name", "Dealer Code"]].copy()
+                f_df["Issue_Type"] = "FUTURE_DATE"
+                f_df["Issue_Description"] = "Joining Date is in the future"
+                issues_frames.append(f_df)
 
-        # Skill regressions
+        # Skill regressions — vectorized
         if "SKILL_REGRESSION_FLAG" in unified_df.columns:
             regressions = unified_df[unified_df["SKILL_REGRESSION_FLAG"] == True]
-            for _, row in regressions.iterrows():
-                issues.append({
-                    "Star ID": row.get("Star ID", ""),
-                    "Name": row.get("Name", ""),
-                    "Dealer Code": row.get("Dealer Code", ""),
-                    "Issue_Type": "SKILL_REGRESSION",
-                    "Issue_Description": f"Post ({row.get('SKILL LEVEL - POST', '')}) < Pre ({row.get('SKILL LEVEL - PRE', '')})",
-                })
+            if not regressions.empty:
+                r_df = regressions[["Star ID", "Name", "Dealer Code"]].copy()
+                r_df["Issue_Type"] = "SKILL_REGRESSION"
+                if "SKILL LEVEL - PRE" in regressions.columns and "SKILL LEVEL - POST" in regressions.columns:
+                    r_df["Issue_Description"] = (
+                        "Post (" + regressions["SKILL LEVEL - POST"].astype(str) +
+                        ") < Pre (" + regressions["SKILL LEVEL - PRE"].astype(str) + ")"
+                    ).values
+                else:
+                    r_df["Issue_Description"] = "Post-training skill lower than pre-training"
+                issues_frames.append(r_df)
 
-        # Missing names
-        missing_name = unified_df[unified_df["Name"].isna() | (unified_df["Name"].astype(str).str.strip() == "")]
-        for _, row in missing_name.head(50).iterrows():
-            issues.append({
-                "Star ID": row.get("Star ID", ""),
-                "Name": "",
-                "Dealer Code": row.get("Dealer Code", ""),
-                "Issue_Type": "MISSING_NAME",
-                "Issue_Description": "Employee name is missing",
-            })
+        # Missing names — vectorized
+        if "Name" in unified_df.columns:
+            missing_name = unified_df[
+                unified_df["Name"].isna() | (unified_df["Name"].astype(str).str.strip() == "")
+            ]
+            if not missing_name.empty:
+                m_df = missing_name[["Star ID", "Name", "Dealer Code"]].head(50).copy()
+                m_df["Issue_Type"] = "MISSING_NAME"
+                m_df["Issue_Description"] = "Employee name is missing"
+                issues_frames.append(m_df)
 
-        if issues:
-            issues_df = pd.DataFrame(issues)
+        if issues_frames:
+            issues_df = pd.concat(issues_frames, ignore_index=True)
             st.markdown(f"**{len(issues_df)} data quality issues found**")
-            st.dataframe(issues_df, use_container_width=True, height=300)
+            st.dataframe(issues_df, height=300)
         else:
             st.success("No data quality issues detected.")
     else:
