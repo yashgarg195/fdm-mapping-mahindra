@@ -106,6 +106,19 @@ def export_to_excel(df_master, stats):
                 'border_color': BRAND_LIGHT_GREY
             })
             
+        # Alert Format
+        alert_format = workbook.add_format({
+            'font_name': 'Segoe UI',
+            'font_size': 10,
+            'bg_color': BRAND_RED,
+            'font_color': BRAND_WHITE,
+            'bold': True,
+            'align': 'center',
+            'valign': 'vcenter',
+            'border': 1,
+            'border_color': BRAND_LIGHT_GREY
+        })
+        
         # ── SHEET 1: METADATA & SUMMARY ───────────────────────────────────────
         meta_sheet = workbook.add_worksheet('Metadata & Summary')
         meta_sheet.set_column('A:A', 30)
@@ -127,7 +140,8 @@ def export_to_excel(df_master, stats):
             ("Untrained Active Manpower Count", stats["untrained_count"]),
             ("Unresolved Training Records", stats["unresolved_count"]),
             ("Future Joining Dates Identified", stats["future_joining_count"]),
-            ("Skill Regressions Identified", stats["skill_regression_count"])
+            ("Skill Regressions Identified", stats["skill_regression_count"]),
+            ("Missing Prerequisite Anomalies", stats.get("missing_prerequisite_count", 0))
         ]
         
         row_idx = 6
@@ -206,6 +220,9 @@ def export_to_excel(df_master, stats):
                 elif col_name == 'MATCH_CONFIDENCE':
                     # Apply background color format matching confidence level
                     fmt = conf_formats.get(confidence_val, cell_format)
+                    data_sheet.write(excel_row_idx, col_idx, str(val), fmt)
+                elif col_name == 'MISSING_PREREQUISITE_FLAG':
+                    fmt = alert_format if val else cell_format
                     data_sheet.write(excel_row_idx, col_idx, str(val), fmt)
                 else:
                     data_sheet.write(excel_row_idx, col_idx, str(val), cell_format)

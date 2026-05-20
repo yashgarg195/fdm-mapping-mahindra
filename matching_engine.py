@@ -37,15 +37,21 @@ def run_matching_pipeline(df_roster_raw, df_training_raw, base_date=datetime.dat
     if 'Star ID.1' in training.columns:
         training.drop(columns=['Star ID.1'], inplace=True)
 
-    # Ensure required columns are present in roster
+    # Ensure required columns are present in roster and drop extraneous ones
     roster_cols = ['Star ID', 'Zone', 'State', 'Dealer AO', 'Dealer Code', 'Dealer Name', 
                    'Dealer Operational Status', 'Location', 'Emp Code', 'Name', 
                    'Designation', 'Joining Date', 'Contact No', 'AadharCardNumber', 
                    'Gender', 'Father Name', 'DOB', 'Residence Location', 'Age']
     
+    roster = roster[[col for col in roster.columns if col in roster_cols]].copy()
     for col in roster_cols:
         if col not in roster.columns:
             roster[col] = np.nan
+
+    # Ensure required columns are present in training and drop extraneous ones
+    training_cols = ['Star ID', 'Name', 'Dealer Code', 'Dealer AO', 'Designation', 'Emp Code', 'AadharCardNumber', 'Training year', 'SKILL LEVEL - PRE', 'SKILL LEVEL - POST', 'LAST PRODUCT TRANIING ON', 'LAST MODEL TRAINED']
+    training = training[[col for col in training.columns if col in training_cols]].copy()
+
 
     # 2. Pre-process Roster to build indexes for fast matching
     roster['clean_Name'] = roster['Name'].apply(clean_name)
@@ -463,8 +469,44 @@ def run_matching_pipeline(df_roster_raw, df_training_raw, base_date=datetime.dat
     df_master['RECALL_COLOR'] = [r[1] for r in recall_results]
     df_master['RECALL_DESCRIPTION'] = [r[2] for r in recall_results]
     
-    # Clean up temporary columns
     df_master.drop(columns=['Training_End_Date'], inplace=True, errors='ignore')
+    
+    # Calculate VALIDATED_SKILL_LEVEL based on cumulative post_scores
+    validated_levels = {}
+    missing_prereq = {}
+    
+    for star_id, group in df_master.groupby('Star ID'):
+        if pd.notna(star_id) and star_id != 0:
+            # Extract valid scores
+            valid_scores = set(group[group['post_score'] > 0]['post_score'].tolist())
+            val = 0
+            for i in range(1, 5):
+                if i in valid_scores:
+                    val = i
+                else:
+                    break
+            validated_levels[star_id] = val
+            
+            # Check if there is any post_score greater than the validated sequence
+            max_score = max(valid_scores) if valid_scores else 0
+            missing_prereq[star_id] = max_score > val
+            
+    def get_validated_skill(row):
+        star_id = row['Star ID']
+        if pd.notna(star_id) and star_id != 0 and star_id in validated_levels:
+            return get_skill_label(validated_levels[star_id])
+        # For Star ID 0 (unresolved), just map their post_score if > 0
+        score = row.get('post_score', -1)
+        return get_skill_label(score) if score > 0 else "NO TEST"
+        
+    def get_missing_prereq(row):
+        star_id = row['Star ID']
+        if pd.notna(star_id) and star_id != 0 and star_id in missing_prereq:
+            return missing_prereq[star_id]
+        return False
+        
+    df_master['VALIDATED_SKILL_LEVEL'] = df_master.apply(get_validated_skill, axis=1)
+    df_master['MISSING_PREREQUISITE_FLAG'] = df_master.apply(get_missing_prereq, axis=1)
     
     # 7. Summary Stats
     total_training_rows = len(df_training_raw)
@@ -480,7 +522,8 @@ def run_matching_pipeline(df_roster_raw, df_training_raw, base_date=datetime.dat
         "confidence_distribution": confidence_counts,
         "passes_distribution": passes_count,
         "future_joining_count": int(df_master["FUTURE_JOINING_FLAG"].sum()),
-        "skill_regression_count": int(df_master["SKILL_REGRESSION_FLAG"].sum())
+        "skill_regression_count": int(df_master["SKILL_REGRESSION_FLAG"].sum()),
+        "missing_prerequisite_count": int(df_master["MISSING_PREREQUISITE_FLAG"].sum())
     }
     
     return df_master, stats

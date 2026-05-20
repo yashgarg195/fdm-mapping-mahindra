@@ -1,17 +1,119 @@
-import streamlit as st
+import datetime
+import re
+import io
+import warnings
 import pandas as pd
 import numpy as np
-import datetime
+import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-import io
+from rapidfuzz import fuzz, process as rfprocess
+import jellyfish
+import recordlinkage
+from symspellpy import SymSpell, Verbosity
+warnings.filterwarnings('ignore')
+
+# ── OFFICIAL BRAND CORPORATE COLOR PALETTE ────────────────────────────────────
+BRAND_RED       = "#E31837" # Primary Accent / Call-to-actions / Critical highlights
+BRAND_CHARCOAL  = "#4D4D4F" # Dark Neutral / Sub-headers / Body text elements
+BRAND_DARK_CORE = "#231F20" # Primary Dark Accent / Dynamic structural elements
+BRAND_LIGHT_GREY= "#E6E7E8" # Light Background Tint / Structural block surfaces
+BRAND_WHITE     = "#FFFFFF" # Pure Neutral
+
+# ── FISCAL CALENDAR BOUNDARIES ────────────────────────────────────────────────
+CURRENT_FY = "F-26"
+FY_CALENDAR = {
+    "F-23": {"start": datetime.date(2022, 4, 1), "end": datetime.date(2023, 3, 31)},
+    "F-24": {"start": datetime.date(2023, 4, 1), "end": datetime.date(2024, 3, 31)},
+    "F-25": {"start": datetime.date(2024, 4, 1), "end": datetime.date(2025, 3, 31)},
+    "F-26": {"start": datetime.date(2025, 4, 1), "end": datetime.date(2026, 3, 31)},
+}
+
+# ── RETRAINING RECALL INTERVAL BUCKETS ───────────────────────────────────────
+RECALL_BUCKETS = [
+    ("CRITICAL",   36, BRAND_RED,       "Critical — 3+ years since last training"),
+    ("OVERDUE",    24, "#FF8C00",       "Overdue — 2–3 years since last training"),
+    ("DUE_SOON",   18, "#FFD700",       "Due Soon — 18–24 months since last training"),
+    ("RECENT",      6, "#90EE90",       "Recent — 6–18 months since last training"),
+    ("CURRENT_FY",  0, BRAND_CHARCOAL,  "Current FY — trained this financial year"),
+]
+NEVER_TRAINED_COLOR  = BRAND_LIGHT_GREY
+NEVER_TRAINED_LABEL  = "NEVER_TRAINED"
+
+# ── MATRICES FOR SKILL SCORING ────────────────────────────────────────────────
+SKILL_SCORE_MAP = {
+    0: 0, "0": 0,
+    "L1": 1, "L2": 2, "L3": 3, "L4": 4,
+    "NO TEST": -1,
+}
+SKILL_LABELS = {-1: "NO TEST", 0: "0", 1: "L1", 2: "L2", 3: "L3", 4: "L4"}
+
+# ── PRODUCTION MODEL TEXT STANDARDIZATION MAP ────────────────────────────────
+MODEL_NORMALISATION_MAP = {
+    "INSTALATION":       "INSTALLATION",
+    "L1-L2 TRAINING":    "L1 L2 TRAINING",
+    "M LIFT HYDRAULIC":  "M-LIFT HYDRAULICS",
+    "FARM MACHNINERY":   "FARM MACHINERY",
+    "FARM MACHINERY":    "FARM MACHINERY",
+    "YUVO HYDRAULICS":   "YUVO HYDRAULICS",
+}
+
+CANONICAL_MODELS = [
+    "H1 R", "YT+", "TREM IV", "OJA", "ENGINE SETTINGS", "SALES MAN TRAINING",
+    "TREM IV REFRESH", "H1 TRACTOR", "YUVO HYDRAULICS", "H1 R INSTALLATION",
+    "NOVO", "MS PTO", "HYDRAULICS", "ROTAVATOR", "OJA REFRESHER", "KRISH E KIT",
+    "ASK PORTAL", "L1 L2 TRAINING", "DSQI", "FARM MACHINERY", "INSTALLATION",
+    "SST - AWARENESS", "HY TECH HYDRAULIC", "FLA PRODUCT TRAINING", "XP PLUS",
+    "THRESHER", "STRAW REAPER", "PARIVARTAN KIT", "WET CLUTCH", "WARRANTY MODULE",
+    "ELECTRICALS", "LOADER", "M-LIFT HYDRAULICS", "SP PLUS", "ARJUN", "JIVO",
+    "NEW DEALER INDUCTION", "LASER LEVELER", "MSDC - TRAINING", "YUVO TRACTOR", "N - PAGE",
+]
+
+MODEL_CATEGORY_MAP = {
+    "H1 R": "TECHNICAL", "H1 TRACTOR": "TECHNICAL", "H1 R INSTALLATION": "TECHNICAL",
+    "TREM IV": "TECHNICAL", "TREM IV REFRESH": "TECHNICAL", "OJA": "TECHNICAL", 
+    "OJA REFRESHER": "TECHNICAL", "NOVO": "TECHNICAL", "YT+": "TECHNICAL", 
+    "SP PLUS": "TECHNICAL", "XP PLUS": "TECHNICAL", "ARJUN": "TECHNICAL", 
+    "JIVO": "TECHNICAL", "YUVO TRACTOR": "TECHNICAL", "ENGINE SETTINGS": "TECHNICAL",
+    "HYDRAULICS": "TECHNICAL", "YUVO HYDRAULICS": "TECHNICAL", "HY TECH HYDRAULIC": "TECHNICAL", 
+    "M-LIFT HYDRAULICS": "TECHNICAL", "MS PTO": "TECHNICAL", "WET CLUTCH": "TECHNICAL", 
+    "ELECTRICALS": "TECHNICAL", "DSQI": "TECHNICAL", 
+    "ROTAVATOR": "PRODUCT", "THRESHER": "PRODUCT", "STRAW REAPER": "PRODUCT", 
+    "LOADER": "PRODUCT", "LASER LEVELER": "PRODUCT", "KRISH E KIT": "PRODUCT", 
+    "PARIVARTAN KIT": "PRODUCT", "INSTALLATION": "PRODUCT", "FARM MACHINERY": "PRODUCT", 
+    "SALES MAN TRAINING": "PROCESS", "ASK PORTAL": "PROCESS", "NEW DEALER INDUCTION": "PROCESS", 
+    "WARRANTY MODULE": "PROCESS", "SST - AWARENESS": "PROCESS", "FLA PRODUCT TRAINING": "PROCESS", 
+    "MSDC - TRAINING": "PROCESS", "L1 L2 TRAINING": "PROCESS", "N - PAGE": "PROCESS"
+}
+
+TECHNICAL_DESIGNATIONS = ["Technician", "Installer", "Service Advisor (FLA)", "Techguru", "Electrician"]
+ALL_DESIGNATIONS = TECHNICAL_DESIGNATIONS + ["Salesman", "Sales Manager", "Works Manager", "Branch Manager", "General Manager", "Team Leader"]
+
+ZONE_STATE_MAP = {
+    "Zone1": ["Haryana", "Punjab", "Rajasthan East", "Rajasthan West"],
+    "Zone2": ["UP Central", "UP East", "UP West"],
+    "Zone3": ["Bihar", "Jharkhand", "North East", "West Bengal"],
+    "Zone4": ["Chhattisgarh", "Madhya Pradesh East", "Madhya Pradesh West", "Odisha"],
+    "Zone5": ["Gujarat", "Karnataka", "Maharashtra East", "Maharashtra West"],
+    "Zone6": ["Andhra Pradesh", "Tamil Nadu", "Telangana"],
+}
+
+CONFIDENCE_ORDER = ["HIGH", "MEDIUM", "LOW", "FUZZY", "UNRESOLVED"]
+CONFIDENCE_COLORS = {
+    "HIGH":       "#CCFFCC",
+    "MEDIUM":     "#CCFFFF",
+    "LOW":        "#FFE0A0",
+    "FUZZY":      "#FFD0FF",
+    "UNRESOLVED": "#FFCCCC",
+}
+
+FUZZY_PRIMARY_THRESHOLD   = 88
+FUZZY_SECONDARY_THRESHOLD = 75
+RECORDLINKAGE_SCORE_HIGH  = 4.0
+RECORDLINKAGE_SCORE_FUZZY = 2.5
 
 from utils import (
-    BRAND_RED, BRAND_CHARCOAL, BRAND_DARK_CORE, BRAND_LIGHT_GREY, BRAND_WHITE,
-    CURRENT_FY, FY_CALENDAR, RECALL_BUCKETS, NEVER_TRAINED_COLOR, NEVER_TRAINED_LABEL,
-    SKILL_SCORE_MAP, SKILL_LABELS, CANONICAL_MODELS, MODEL_CATEGORY_MAP,
-    TECHNICAL_DESIGNATIONS, ALL_DESIGNATIONS, ZONE_STATE_MAP, CONFIDENCE_COLORS,
-    CONFIDENCE_ORDER, average_skill_score, get_skill_label, get_skill_score
+    average_skill_score, get_skill_label, get_skill_score, calculate_recall_bucket
 )
 from matching_engine import run_matching_pipeline
 from excel_exporter import export_to_excel
@@ -27,60 +129,57 @@ st.set_page_config(
 # Custom premium styling using HTML/CSS injection
 st.markdown(f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&display=swap');
-    
-    html, body, [class*="css"] {{
-        font-family: 'Segoe UI', sans-serif;
-    }}
-    
     /* Title Styling */
     .portal-title {{
-        color: {BRAND_RED};
-        font-weight: 700;
-        font-size: 2.2rem;
+        color: #E31837;
+        font-weight: 800;
+        font-size: 2.8rem;
         margin-bottom: 0px;
-        letter-spacing: -0.5px;
+        letter-spacing: -1px;
+        text-transform: uppercase;
     }}
     .portal-subtitle {{
-        color: {BRAND_CHARCOAL};
-        font-weight: 400;
-        font-size: 1.0rem;
+        color: #4D4D4F;
+        font-weight: 600;
+        font-size: 1.2rem;
         margin-bottom: 25px;
         text-transform: uppercase;
-        border-bottom: 2px solid {BRAND_RED};
+        border-bottom: 4px solid #E31837;
         padding-bottom: 8px;
     }}
     
     /* Metrics Card Styling */
     .kpi-card {{
-        background-color: {BRAND_WHITE};
-        border-left: 5px solid {BRAND_RED};
-        border-radius: 6px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        background-color: #FFFFFF;
+        border: 2px solid #E6E7E8;
+        border-top: 6px solid #E31837;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         padding: 20px;
         margin-bottom: 15px;
+        text-align: center;
         transition: transform 0.2s ease;
     }}
     .kpi-card:hover {{
         transform: translateY(-2px);
     }}
     .kpi-label {{
-        color: {BRAND_CHARCOAL};
+        color: #4D4D4F;
         font-size: 0.85rem;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 1px;
     }}
     .kpi-value {{
-        color: {BRAND_DARK_CORE};
-        font-size: 1.8rem;
-        font-weight: 700;
+        color: #231F20;
+        font-size: 2.5rem;
+        font-weight: 800;
         margin-top: 5px;
     }}
     .kpi-desc {{
         color: #888888;
         font-size: 0.75rem;
         margin-top: 5px;
+        text-transform: uppercase;
     }}
     
     /* Custom Badge / Pill */
@@ -108,10 +207,10 @@ st.markdown(f"""
 # App Logo / Header Section
 row_logo, row_header = st.columns([1, 11])
 with row_logo:
-    st.markdown(f"<div style='font-size:3.5rem; text-align:center; color:{BRAND_RED}; font-weight:700;'>M</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:4rem; text-align:center; color:{BRAND_RED}; font-weight:800;'>M</div>", unsafe_allow_html=True)
 with row_header:
-    st.markdown('<div class="portal-title">MAHINDRA & MAHINDRA</div>', unsafe_allow_html=True)
-    st.markdown('<div class="portal-subtitle">Training Analytics & Manpower Recall Portal — FDM Mapping System</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-title">MAHINDRA & MAHINDRA TRACTORS</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-subtitle">Heavy-Duty Training Analytics & Recall Terminal</div>', unsafe_allow_html=True)
 
 # Initialize Session State Variables
 if "df_master" not in st.session_state:
@@ -213,6 +312,17 @@ else: # Direct Matched Master upload
                 sheet_to_load = "Working file" if "Working file" in xl.sheet_names else xl.sheet_names[0]
                 df_direct_master = pd.read_excel(master_file, sheet_name=sheet_to_load)
             
+            # Defensive check: Ensure required columns exist, adding them with NaNs if missing
+            req_cols = ['Joining Date', 'DOB', 'Training year', 'SKILL LEVEL - PRE', 'SKILL LEVEL - POST']
+            for c in req_cols:
+                if c not in df_direct_master.columns:
+                    df_direct_master[c] = np.nan
+                    
+            if 'VALIDATED_SKILL_LEVEL' not in df_direct_master.columns:
+                df_direct_master['VALIDATED_SKILL_LEVEL'] = "NO TEST"
+            if 'MISSING_PREREQUISITE_FLAG' not in df_direct_master.columns:
+                df_direct_master['MISSING_PREREQUISITE_FLAG'] = False
+                    
             # Defensive check: if Joining Date, DOB are string types, cast them
             df_direct_master['Joining Date'] = pd.to_datetime(df_direct_master['Joining Date'], errors='coerce')
             df_direct_master['DOB'] = pd.to_datetime(df_direct_master['DOB'], errors='coerce')
@@ -282,7 +392,8 @@ else: # Direct Matched Master upload
                 "confidence_distribution": conf_counts,
                 "passes_distribution": {},
                 "future_joining_count": int(df_direct_master["FUTURE_JOINING_FLAG"].sum()),
-                "skill_regression_count": int(df_direct_master["SKILL_REGRESSION_FLAG"].sum())
+                "skill_regression_count": int(df_direct_master["SKILL_REGRESSION_FLAG"].sum()),
+                "missing_prerequisite_count": int(df_direct_master["MISSING_PREREQUISITE_FLAG"].sum())
             }
             
             st.session_state["df_master"] = df_direct_master
@@ -308,69 +419,24 @@ if df_master is None:
     st.image("https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=600&auto=format&fit=crop", width=400, caption="Enterprise Training Analytics Portal")
     st.stop()
 
-# ── PIPELINE STATISTICS REPORT (COLLAPSIBLE SUMMARY) ─────────────────────────
-with st.expander("📊 ETL Pipeline Execution & Data Quality Report", expanded=False):
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Manpower (Roster)", f"{stats['total_roster_count']:,} employees")
-        st.metric("Consolidated Records", f"{stats['total_master_count']:,} rows")
-    with col2:
-        st.metric("Input Training Rows", f"{stats['total_training_input_count']:,} records")
-        st.metric("Resolved Matches", f"{stats['matched_count']:,} rows")
-    with col3:
-        st.metric("Untrained Manpower", f"{stats['untrained_count']:,} employees")
-        st.metric("Unresolved Logs", f"{stats['unresolved_count']:,} rows", delta="Zero Row Loss Active")
-    with col4:
-        st.metric("Future Date Flags", stats["future_joining_count"])
-        st.metric("Skill Regressions", stats["skill_regression_count"])
-        
-    st.markdown("#### Name Resolution Confidence Distribution")
-    # Show confidence distribution
-    conf_df = pd.DataFrame([
-        {"Confidence": k, "Count": v, "Color": CONFIDENCE_COLORS[k]}
-        for k, v in stats["confidence_distribution"].items()
-    ])
-    fig_conf = px.bar(
-        conf_df, x="Confidence", y="Count", color="Confidence",
-        color_discrete_map=CONFIDENCE_COLORS,
-        title="Resolution Confidence Breakdown"
-    )
-    st.plotly_chart(fig_conf, use_container_width=True, key="fig_conf_chart")
-
-    # Download consolidated master button
-    excel_data = export_to_excel(df_master, stats)
-    st.download_button(
-        label="📥 Download Formatted Master Excel Workbook",
-        data=excel_data,
-        file_name=f"MAHINDRA_MASTER_TRAINING_REPORT_{datetime.date.today().strftime('%Y%m%d')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
-
 # ── READ-ONLY FILTER CONTROLS (EXPLORATION ONLY) ──────────────────────────────
-st.markdown("### 🔍 Interactive Filters (Read-Only Exploration)")
+st.markdown("### 🚜 Dashboard Filters")
 filter_row1, filter_row2 = st.columns(2)
 
 with filter_row1:
-    # 1. Zone filter
     available_zones = sorted(df_master['Zone'].dropna().unique())
     selected_zones = st.multiselect("Select Zones:", available_zones, default=available_zones)
     
-    # 2. State filter (dynamically filtered by selected Zone)
-    # Determine valid states for selected zones
     allowed_states = []
     for z in selected_zones:
         allowed_states.extend(ZONE_STATE_MAP.get(z, []))
     available_states = sorted(df_master[df_master['Zone'].isin(selected_zones)]['State'].dropna().unique())
-    # Keep selected states that belong to current available states
     selected_states = st.multiselect("Select States:", available_states, default=available_states)
 
 with filter_row2:
-    # 3. Designation filter
     available_desigs = sorted(df_master['Designation'].dropna().unique())
     selected_desigs = st.multiselect("Select Designations:", available_desigs, default=available_desigs)
     
-    # 4. Recall Status filter
     available_recalls = sorted(df_master['RECALL_STATUS'].dropna().unique())
     selected_recalls = st.multiselect("Select Recall Statuses:", available_recalls, default=available_recalls)
 
@@ -388,337 +454,50 @@ selected_dealers = st.sidebar.multiselect("Filter by Dealership:", available_dea
 if selected_dealers:
     df_filtered = df_filtered[df_filtered['Dealer Name'].isin(selected_dealers)]
 
-# ── DASHBOARD NAVIGATION TABS ─────────────────────────────────────────────────
-tab_names = ["Executive Dashboard", "Training Recall List", "Skill Shift Analysis", "Leaderboards", "Employee Deep Dive"]
-tabs = st.tabs(tab_names)
+# ── TOP LEVEL METRICS ─────────────────────────────────────────────────────────
+st.markdown("---")
+kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
 
-# Tab 1: Executive Dashboard (Overview)
-with tabs[0]:
-    st.markdown("### Executive Overview")
-    
-    # KPIs Row
-    kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
-    
-    total_emp = df_filtered['Star ID'].nunique()
-    # Employee has been trained if they have a valid Training Year
-    trained_emp = df_filtered[df_filtered['Training year'].notnull()]['Star ID'].nunique()
-    coverage = (trained_emp / total_emp * 100) if total_emp > 0 else 0
-    
-    overdue_critical_count = df_filtered[df_filtered['RECALL_STATUS'].isin(['CRITICAL', 'OVERDUE'])]['Star ID'].nunique()
-    
-    with kpi_col1:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-label">Total Manpower</div>
-            <div class="kpi-value">{total_emp:,}</div>
-            <div class="kpi-desc">Active in selected filters</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with kpi_col2:
-        st.markdown(f"""
-        <div class="kpi-card" style="border-left-color: #90EE90;">
-            <div class="kpi-label">Trained Manpower</div>
-            <div class="kpi-value">{trained_emp:,}</div>
-            <div class="kpi-desc">At least one training record</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with kpi_col3:
-        st.markdown(f"""
-        <div class="kpi-card" style="border-left-color: #FFD700;">
-            <div class="kpi-label">Training Coverage</div>
-            <div class="kpi-value">{coverage:.1f}%</div>
-            <div class="kpi-desc">Trained vs Total Roster ratio</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with kpi_col4:
-        st.markdown(f"""
-        <div class="kpi-card" style="border-left-color: {BRAND_RED};">
-            <div class="kpi-label">Overdue / Critical Recall</div>
-            <div class="kpi-value">{overdue_critical_count:,}</div>
-            <div class="kpi-desc">Technicians due for retraining</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    chart_col1, chart_col2 = st.columns(2)
-    
-    with chart_col1:
-        st.markdown("#### Training Recall Status Distribution")
-        # Donut Chart for Recall Statuses
-        recall_counts = df_filtered.groupby('Star ID')['RECALL_STATUS'].first().value_counts().reset_index()
-        recall_counts.columns = ['Recall Status', 'Headcount']
-        
-        # Color mapping
-        color_map = {
-            "CRITICAL": BRAND_RED,
-            "OVERDUE": "#FF8C00",
-            "DUE_SOON": "#FFD700",
-            "RECENT": "#90EE90",
-            "CURRENT_FY": BRAND_CHARCOAL,
-            "NEVER_TRAINED": NEVER_TRAINED_COLOR
-        }
-        
-        fig_donut = px.pie(
-            recall_counts, names='Recall Status', values='Headcount',
-            hole=0.4, color='Recall Status',
-            color_discrete_map=color_map
-        )
-        fig_donut.update_layout(margin=dict(t=20, b=20, l=20, r=20))
-        st.plotly_chart(fig_donut, use_container_width=True, key="fig_donut_recall")
-        
-    with chart_col2:
-        st.markdown("#### Training Coverage by Zone")
-        # Bar Chart of Trained vs Untrained per Zone
-        zone_df = df_filtered.groupby('Zone').agg(
-            Total_Employees=('Star ID', 'nunique'),
-            Trained_Employees=('Star ID', lambda x: x[df_filtered.loc[x.index, 'Training year'].notnull()].nunique())
-        ).reset_index()
-        zone_df['Coverage %'] = (zone_df['Trained_Employees'] / zone_df['Total_Employees'] * 100).round(1)
-        
-        fig_zone = px.bar(
-            zone_df, x='Zone', y='Coverage %',
-            color='Zone', color_discrete_sequence=[BRAND_RED, BRAND_CHARCOAL, "#707072", "#9C9C9E", "#C0C0C2", "#E6E7E8"],
-            text='Coverage %'
-        )
-        fig_zone.update_layout(yaxis_range=[0, 100])
-        st.plotly_chart(fig_zone, use_container_width=True, key="fig_zone_coverage")
+total_emp = df_filtered['Star ID'].nunique()
+trained_emp = df_filtered[df_filtered['Training year'].notnull()]['Star ID'].nunique()
+coverage = (trained_emp / total_emp * 100) if total_emp > 0 else 0
+overdue_critical_count = df_filtered[df_filtered['RECALL_STATUS'].isin(['CRITICAL', 'OVERDUE'])]['Star ID'].nunique()
+missing_pre = df_filtered[df_filtered.get('MISSING_PREREQUISITE_FLAG', False)]['Star ID'].nunique()
 
-# Tab 2: Training Recall List
-with tabs[1]:
-    st.markdown("### Training Recall & Action List")
-    st.markdown("Identifies employees whose last training fell outside standard timelines. Filter below to target specific recall urgency levels.")
-    
-    selected_recall_tab = st.multiselect(
-        "Filter List by Urgency:",
-        ["CRITICAL", "OVERDUE", "DUE_SOON", "RECENT", "CURRENT_FY", "NEVER_TRAINED"],
-        default=["CRITICAL", "OVERDUE", "DUE_SOON"]
-    )
-    
-    # Filter the list
-    df_recall_list = df_filtered[df_filtered['RECALL_STATUS'].isin(selected_recall_tab)]
-    
-    # De-duplicate by employee to show latest status
-    # Get first record per Star ID
-    df_recall_unique = df_recall_list.sort_values(
-        ['Star ID', 'LATEST_TRAINING_DATE'], ascending=[True, False]
-    ).drop_duplicates(subset=['Star ID'])
-    
-    st.markdown(f"**Found {df_recall_unique.shape[0]} unique employees matching criteria.**")
-    
-    # Select columns to display
-    display_cols = ['Star ID', 'Name', 'Designation', 'Zone', 'State', 'Dealer Code', 'Dealer Name', 
-                    'Contact No', 'LAST PRODUCT TRANIING ON', 'LAST MODEL TRAINED', 
-                    'LATEST_TRAINING_DATE', 'RECALL_STATUS']
-    
-    st.dataframe(
-        df_recall_unique[display_cols],
-        column_config={
-            "Star ID": st.column_config.NumberColumn(format="%d"),
-            "LATEST_TRAINING_DATE": st.column_config.DateColumn(format="YYYY-MM-DD"),
-            "RECALL_STATUS": st.column_config.TextColumn(help="Retraining recall interval status")
-        },
-        use_container_width=True
-    )
-    
-    # Download filtered CSV button
-    csv_data = df_recall_unique[display_cols].to_csv(index=False).encode('utf-8')
+with kpi_col1:
+    st.markdown(f'<div class="kpi-card"><div class="kpi-label">TOTAL HEADCOUNT</div><div class="kpi-value">{total_emp:,}</div><div class="kpi-desc">ACTIVE TECHNICIANS</div></div>', unsafe_allow_html=True)
+with kpi_col2:
+    st.markdown(f'<div class="kpi-card" style="border-top-color:#4D4D4F;"><div class="kpi-label">TRAINING COVERAGE</div><div class="kpi-value">{coverage:.1f}%</div><div class="kpi-desc">COMPLETED AT LEAST 1 TRAINING</div></div>', unsafe_allow_html=True)
+with kpi_col3:
+    st.markdown(f'<div class="kpi-card" style="border-top-color:#FF8C00;"><div class="kpi-label">CRITICAL / OVERDUE</div><div class="kpi-value">{overdue_critical_count:,}</div><div class="kpi-desc">IMMEDIATE RECALL REQUIRED</div></div>', unsafe_allow_html=True)
+with kpi_col4:
+    st.markdown(f'<div class="kpi-card" style="border-top-color:#231F20;"><div class="kpi-label">MISSING PREREQUISITES</div><div class="kpi-value">{missing_pre:,}</div><div class="kpi-desc">SKILL LADDER ANOMALIES</div></div>', unsafe_allow_html=True)
+
+# ── EXPORT AND DATA TABLE ─────────────────────────────────────────────────────
+st.markdown("### 📊 Live Data & Exports")
+col_export1, col_export2 = st.columns(2)
+
+with col_export1:
+    # Full Master Export
+    excel_data_master = export_to_excel(df_master, stats)
     st.download_button(
-        label="📥 Download Recall Action List (CSV)",
-        data=csv_data,
-        file_name=f"MAHINDRA_RECALL_ACTION_LIST_{datetime.date.today().strftime('%Y%m%d')}.csv",
-        mime="text/csv",
+        label="🚜 Download Full Master Database (Excel)",
+        data=excel_data_master,
+        file_name=f"MAHINDRA_MASTER_FULL_{datetime.date.today().strftime('%Y%m%d')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True
     )
 
-# Tab 3: Skill Level Shift Analytics
-with tabs[2]:
-    st.markdown("### Skill Transition & Regression Analysis")
-    st.markdown("Evaluates pre- vs. post-training scores. Note: `NO TEST` (-1) is excluded from mathematical averages.")
-    
-    # Filter to trained rows only
-    df_trained_rows = df_filtered[df_filtered['Training year'].notnull()].copy()
-    
-    if df_trained_rows.empty:
-        st.info("No training history records available under selected filters.")
-    else:
-        # Average Pre and Post scores (strictly ignoring -1 / NO TEST)
-        # Add numeric representations
-        df_trained_rows['pre_score'] = df_trained_rows['SKILL LEVEL - PRE'].map(SKILL_SCORE_MAP)
-        df_trained_rows['post_score'] = df_trained_rows['SKILL LEVEL - POST'].map(SKILL_SCORE_MAP)
-        
-        avg_pre = df_trained_rows[df_trained_rows['pre_score'] >= 0]['pre_score'].mean()
-        avg_post = df_trained_rows[df_trained_rows['post_score'] >= 0]['post_score'].mean()
-        
-        col_pre, col_post, col_gain = st.columns(3)
-        with col_pre:
-            st.metric("Average Pre-Training Score", f"{avg_pre:.2f}" if pd.notna(avg_pre) else "N/A")
-        with col_post:
-            st.metric("Average Post-Training Score", f"{avg_post:.2f}" if pd.notna(avg_post) else "N/A")
-        with col_gain:
-            if pd.notna(avg_pre) and pd.notna(avg_post):
-                gain = avg_post - avg_pre
-                st.metric("Average Skill Gain Shift", f"+{gain:.2f}" if gain >= 0 else f"{gain:.2f}")
-            else:
-                st.metric("Average Skill Gain Shift", "N/A")
-                
-        # Designation skill level breakdown
-        st.markdown("#### Average Skill Score by Designation")
-        desig_scores = []
-        for desig, group in df_trained_rows.groupby('Designation'):
-            valid_pre = group[group['pre_score'] >= 0]['pre_score']
-            valid_post = group[group['post_score'] >= 0]['post_score']
-            
-            p_score = valid_pre.mean() if not valid_pre.empty else np.nan
-            po_score = valid_post.mean() if not valid_post.empty else np.nan
-            
-            if pd.notna(p_score) or pd.notna(po_score):
-                desig_scores.append({
-                    "Designation": desig,
-                    "Pre-Training Avg": round(p_score, 2) if pd.notna(p_score) else 0,
-                    "Post-Training Avg": round(po_score, 2) if pd.notna(po_score) else 0
-                })
-        
-        if desig_scores:
-            df_desig_scores = pd.DataFrame(desig_scores)
-            df_desig_melt = df_desig_scores.melt(id_vars='Designation', value_vars=['Pre-Training Avg', 'Post-Training Avg'],
-                                                 var_name='Stage', value_name='Score')
-            
-            fig_desig_skill = px.bar(
-                df_desig_melt, x='Designation', y='Score', color='Stage',
-                barmode='group', color_discrete_map={"Pre-Training Avg": BRAND_CHARCOAL, "Post-Training Avg": BRAND_RED}
-            )
-            st.plotly_chart(fig_desig_skill, use_container_width=True, key="fig_desig_skill_scores")
-            
-        # Skill Regressions Listing
-        st.markdown("#### ⚠️ Skill Regression Alerts")
-        st.markdown("Records where `SKILL LEVEL - POST` score is lower than `SKILL LEVEL - PRE` score (negative shift).")
-        
-        df_regressions = df_trained_rows[df_trained_rows['SKILL_REGRESSION_FLAG']]
-        st.markdown(f"**Found {df_regressions.shape[0]} training records with regression.**")
-        
-        if not df_regressions.empty:
-            reg_display_cols = ['Star ID', 'Name', 'Designation', 'Dealer Code', 'Dealer Name', 
-                               'Training year', 'LAST PRODUCT TRANIING ON', 'LAST MODEL TRAINED', 
-                               'SKILL LEVEL - PRE', 'SKILL LEVEL - POST']
-            st.dataframe(
-                df_regressions[reg_display_cols],
-                column_config={
-                    "Star ID": st.column_config.NumberColumn(format="%d")
-                },
-                use_container_width=True
-            )
-
-# Tab 4: Leaderboards
-with tabs[3]:
-    st.markdown("### Dealership & Designation Rankings")
-    
-    lead_col1, lead_col2 = st.columns(2)
-    
-    with lead_col1:
-        st.markdown("#### Top 15 Dealerships (Highest Training Coverage %)")
-        # Dealership Coverage
-        dealer_cov = df_filtered.groupby(['Dealer Code', 'Dealer Name']).agg(
-            Total_Employees=('Star ID', 'nunique'),
-            Trained_Employees=('Star ID', lambda x: x[df_filtered.loc[x.index, 'Training year'].notnull()].nunique())
-        ).reset_index()
-        dealer_cov['Coverage %'] = (dealer_cov['Trained_Employees'] / dealer_cov['Total_Employees'] * 100).round(1)
-        dealer_cov = dealer_cov.sort_values(by=['Coverage %', 'Total_Employees'], ascending=[False, False]).head(15)
-        
-        st.dataframe(
-            dealer_cov[['Dealer Code', 'Dealer Name', 'Total_Employees', 'Trained_Employees', 'Coverage %']],
-            use_container_width=True
-        )
-        
-    with lead_col2:
-        st.markdown("#### Dealerships Requiring Retraining Attention")
-        # Dealerships with most Overdue/Critical technicians
-        dealer_attn = df_filtered.groupby(['Dealer Code', 'Dealer Name']).agg(
-            Overdue_Critical_Count=('Star ID', lambda x: x[df_filtered.loc[x.index, 'RECALL_STATUS'].isin(['CRITICAL', 'OVERDUE'])].nunique()),
-            Total_Employees=('Star ID', 'nunique')
-        ).reset_index()
-        dealer_attn = dealer_attn.sort_values(by='Overdue_Critical_Count', ascending=False).head(15)
-        
-        st.dataframe(
-            dealer_attn[['Dealer Code', 'Dealer Name', 'Total_Employees', 'Overdue_Critical_Count']],
-            use_container_width=True
-        )
-
-# Tab 5: Search & Employee Deep Dive
-with tabs[4]:
-    st.markdown("### Employee Deep Dive Profile")
-    
-    search_query = st.text_input(
-        "Search by Star ID, Name, Aadhar, or Employee Code:",
-        placeholder="Enter search term..."
+with col_export2:
+    # Filtered Export (Passing the filtered subset and raw stats to preserve summary page)
+    # The stats will remain global, but the master sheet will be filtered.
+    excel_data_filtered = export_to_excel(df_filtered, stats)
+    st.download_button(
+        label="📥 Download Current Filtered View (Excel)",
+        data=excel_data_filtered,
+        file_name=f"MAHINDRA_FILTERED_VIEW_{datetime.date.today().strftime('%Y%m%d')}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
     )
-    
-    if search_query:
-        # Match query defensively
-        q = str(search_query).strip().upper()
-        
-        # Check matching rows
-        # Direct check on Star ID, Name, AadharCardNumber, Emp Code
-        match_mask = (
-            (df_master['Star ID'].astype(str).str.contains(q, case=False, na=False)) |
-            (df_master['Name'].str.contains(q, case=False, na=False)) |
-            (df_master['AadharCardNumber'].astype(str).str.contains(q, case=False, na=False)) |
-            (df_master['Emp Code'].str.contains(q, case=False, na=False))
-        )
-        
-        matches = df_master[match_mask]
-        
-        if matches.empty:
-            st.info("No matching employee record found.")
-        else:
-            # Dropdown to choose employee if multiple matches exist
-            unique_matches = matches.drop_duplicates(subset=['Star ID', 'Name'])
-            emp_list = [
-                f"{int(row['Star ID']) if pd.notna(row['Star ID']) else 0} - {row['Name']} ({row['Designation']}) at {row['Dealer Name']}"
-                for idx, row in unique_matches.iterrows()
-            ]
-            
-            selected_emp_desc = st.selectbox("Select Employee:", emp_list)
-            
-            selected_idx = emp_list.index(selected_emp_desc)
-            selected_star_id = unique_matches.iloc[selected_idx]['Star ID']
-            selected_name = unique_matches.iloc[selected_idx]['Name']
-            
-            # Filter all training records for this chosen employee
-            emp_records = df_master[
-                (df_master['Star ID'] == selected_star_id) & 
-                (df_master['Name'] == selected_name)
-            ]
-            
-            # Main demographics (from the first row)
-            demo_row = emp_records.iloc[0]
-            
-            st.markdown(f"#### Profile: {demo_row['Name']} (Star ID: {int(demo_row['Star ID']) if pd.notna(demo_row['Star ID']) else 0})")
-            
-            # Profile Details Table
-            p_col1, p_col2 = st.columns(2)
-            with p_col1:
-                st.markdown(f"**Designation:** {demo_row['Designation']}")
-                st.markdown(f"**Gender:** {demo_row['Gender']}")
-                st.markdown(f"**Father's Name:** {demo_row['Father Name']}")
-                st.markdown(f"**Contact Number:** {demo_row['Contact No']}")
-                st.markdown(f"**Aadhar Card Number:** {demo_row['AadharCardNumber']}")
-            with p_col2:
-                st.markdown(f"**Zone / State:** {demo_row['Zone']} / {demo_row['State']}")
-                st.markdown(f"**Dealership:** {demo_row['Dealer Name']} ({demo_row['Dealer Code']})")
-                st.markdown(f"**AO / Location:** {demo_row['Dealer AO']} / {demo_row['Location']}")
-                st.markdown(f"**Joining Date:** {demo_row['Joining Date'].strftime('%Y-%m-%d') if isinstance(demo_row['Joining Date'], (pd.Timestamp, datetime.datetime)) else str(demo_row['Joining Date'])}")
-                st.markdown(f"**Recall Status:** `{demo_row['RECALL_STATUS']}`")
-                
-            # Training History
-            st.markdown("#### Training History & Logs")
-            
-            # Check if there is training history
-            has_training = emp_records['Training year'].notnull().any()
-            if not has_training:
-                st.warning("No product training records registered for this employee in the system.")
-            else:
-                hist_cols = ['Training year', 'LAST PRODUCT TRANIING ON', 'LAST MODEL TRAINED', 
-                             'SKILL LEVEL - PRE', 'SKILL LEVEL - POST', 'MATCH_CONFIDENCE', 'MATCH_REASON']
-                st.dataframe(
-                    emp_records[hist_cols],
-                    use_container_width=True
-                )
+
+st.dataframe(df_filtered, use_container_width=True, height=600)
