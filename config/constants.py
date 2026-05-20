@@ -9,11 +9,11 @@ No other module should define these values independently.
 import datetime
 
 # ── OFFICIAL BRAND CORPORATE COLOR PALETTE ────────────────────────────────────
-BRAND_RED        = "#E31837"
-BRAND_CHARCOAL   = "#4D4D4F"
-BRAND_DARK_CORE  = "#231F20"
-BRAND_LIGHT_GREY = "#E6E7E8"
-BRAND_WHITE      = "#FFFFFF"
+BRAND_RED        = "#d4183d"
+BRAND_CHARCOAL   = "#717182"
+BRAND_DARK_CORE  = "#030213"
+BRAND_LIGHT_GREY = "#ececf0"
+BRAND_WHITE      = "#ffffff"
 
 # ── FISCAL CALENDAR BOUNDARIES ────────────────────────────────────────────────
 CURRENT_FY = "F-26"

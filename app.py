@@ -54,19 +54,31 @@ st.set_page_config(
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
-# CUSTOM CSS — Mahindra & Mahindra Tractors Theme
-# Fixed: Dark text on white background, proper contrast everywhere
+# CUSTOM CSS — Enterprise Dashboard Shadcn Theme
 # ═══════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    :root {{
+      --background: #ffffff;
+      --foreground: #030213;
+      --primary: #030213;
+      --muted: #ececf0;
+      --muted-foreground: #717182;
+      --accent: #e9ebef;
+      --destructive: #d4183d;
+      --input-background: #f3f3f5;
+      --radius: 0.625rem;
+    }}
 
     html, body, [class*="css"] {{
         font-family: 'Inter', 'Segoe UI', sans-serif;
+        font-size: 16px;
     }}
     .stApp {{
-        background-color: #F8F9FA;
-        color: #231F20;
+        background-color: var(--input-background);
+        color: var(--foreground);
     }}
     /* Ensure all main-area text is dark */
     section[data-testid="stMain"] .stMarkdown, 
@@ -79,28 +91,32 @@ st.markdown(f"""
     section[data-testid="stMain"] h4, 
     section[data-testid="stMain"] h5, 
     section[data-testid="stMain"] h6 {{
-        color: #231F20 !important;
+        color: var(--foreground) !important;
     }}
     header[data-testid="stHeader"] {{
-        background-color: {BRAND_DARK_CORE};
+        background-color: var(--background);
+        border-bottom: 1px solid var(--muted);
     }}
     .stTabs [data-baseweb="tab-list"] {{
-        gap: 4px;
+        gap: 8px;
     }}
     .stTabs [data-baseweb="tab"] {{
-        background-color: {BRAND_LIGHT_GREY};
-        border-radius: 6px 6px 0 0;
+        background-color: transparent;
+        border-radius: var(--radius) var(--radius) 0 0;
         padding: 8px 20px;
-        font-weight: 600;
-        color: {BRAND_CHARCOAL} !important;
+        font-weight: 500;
+        color: var(--muted-foreground) !important;
+        border-bottom: 2px solid transparent;
     }}
     .stTabs [aria-selected="true"] {{
-        background-color: {BRAND_RED} !important;
-        color: white !important;
+        background-color: transparent !important;
+        color: var(--primary) !important;
+        border-bottom: 2px solid var(--primary);
     }}
-    /* Sidebar: dark background, white text */
+    /* Sidebar: light background to match shadcn sidebar */
     section[data-testid="stSidebar"] {{
-        background-color: {BRAND_DARK_CORE} !important;
+        background-color: var(--background) !important;
+        border-right: 1px solid var(--muted);
     }}
     section[data-testid="stSidebar"] label,
     section[data-testid="stSidebar"] .stMarkdown,
@@ -108,43 +124,56 @@ st.markdown(f"""
     section[data-testid="stSidebar"] .stMarkdown h2,
     section[data-testid="stSidebar"] .stMarkdown h3,
     section[data-testid="stSidebar"] .stMarkdown span {{
-        color: white !important;
+        color: var(--foreground) !important;
     }}
     /* Ensure inputs, selectboxes, and dropdown values in sidebar are readable */
     section[data-testid="stSidebar"] div[data-baseweb="select"] div,
     section[data-testid="stSidebar"] div[data-baseweb="select"] span,
     section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
-        color: #231F20 !important;
+        color: var(--foreground) !important;
+        background-color: var(--input-background);
+        border-radius: var(--radius);
+        border: none;
     }}
     /* Buttons */
     .stButton>button[kind="primary"] {{
-        background-color: {BRAND_RED};
-        color: white;
-        font-weight: 700;
+        background-color: var(--primary);
+        color: var(--background);
+        font-weight: 500;
         border: none;
-        border-radius: 6px;
-        padding: 12px 24px;
+        border-radius: var(--radius);
+        padding: 10px 20px;
     }}
     .stButton>button[kind="primary"]:hover {{
-        background-color: #C0152E;
+        background-color: var(--primary);
+        opacity: 0.9;
     }}
     .stDownloadButton>button {{
-        background-color: {BRAND_CHARCOAL};
-        color: white;
-        font-weight: 700;
-        border: none;
-        border-radius: 6px;
+        background-color: var(--muted);
+        color: var(--foreground);
+        font-weight: 500;
+        border: 1px solid var(--muted-foreground);
+        border-radius: var(--radius);
     }}
-    /* Metric values — dark text on light bg */
+    /* Metric values */
     [data-testid="stMetricValue"] {{
-        color: #231F20 !important;
+        color: var(--foreground) !important;
+        font-weight: 700;
     }}
     [data-testid="stMetricLabel"] {{
-        color: {BRAND_CHARCOAL} !important;
+        color: var(--muted-foreground) !important;
+        font-weight: 500;
     }}
-    /* Progress bar red theme */
+    /* Progress bar */
     .stProgress > div > div > div > div {{
-        background-color: {BRAND_RED};
+        background-color: var(--destructive);
+    }}
+    /* Dataframes/Tables */
+    [data-testid="stDataFrame"] {{
+        background-color: var(--background);
+        border-radius: var(--radius);
+        border: 1px solid var(--muted);
+        overflow: hidden;
     }}
 </style>
 """, unsafe_allow_html=True)
