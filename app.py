@@ -30,7 +30,6 @@ from ui.sidebar import render_sidebar, apply_filters
 from ui.overview_tab import render_overview
 from ui.backlog_tab import render_backlog
 from ui.skill_tab import render_skill
-from ui.penetration_tab import render_penetration
 from ui.manpower_tab import render_manpower
 from ui.audit_tab import render_audit
 
