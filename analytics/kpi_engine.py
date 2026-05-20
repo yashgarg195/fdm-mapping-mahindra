@@ -1,5 +1,6 @@
 """
 KPI Engine — Computes all key performance indicators from the unified dataset.
+FIXED: Proper pending count (only PENDING+ELIGIBLE), no inflation from NOT_TRAINED.
 """
 import pandas as pd
 import numpy as np
@@ -12,7 +13,7 @@ from config.settings import (
 
 def compute_all_kpis(unified_df):
     """Compute all KPIs from the unified master DataFrame.
-    Returns dict with all KPI values. Handles empty DataFrames gracefully.
+    FIXED: Pending count only includes PENDING + ELIGIBLE (not NOT_TRAINED).
     """
     kpis = {
         "unique_trained_manpower": 0,
@@ -27,6 +28,10 @@ def compute_all_kpis(unified_df):
         "future_date_flag_count": 0,
         "total_training_records": 0,
         "confidence_distribution": {c: 0 for c in CONFIDENCE_ORDER},
+        "completed_count": 0,
+        "attended_count": 0,
+        "not_trained_count": 0,
+        "cross_id_suspect_count": 0,
     }
 
     if unified_df is None or unified_df.empty:
@@ -47,14 +52,13 @@ def compute_all_kpis(unified_df):
     if INCLUDE_FUZZY_IN_KPIS:
         included_conf.add("FUZZY")
 
-    # Filter to included confidence for training-related KPIs
     conf_col = "Match_Confidence"
     if conf_col in df.columns:
         df_kpi = df[df[conf_col].isin(included_conf)]
     else:
         df_kpi = df
 
-    # Unique trained manpower
+    # Unique trained manpower (has a Training year value)
     has_training = df_kpi["Training year"].notna() if "Training year" in df_kpi.columns else pd.Series(False, index=df_kpi.index)
     if "Star ID" in df_kpi.columns:
         kpis["unique_trained_manpower"] = df_kpi.loc[has_training, "Star ID"].nunique()
@@ -67,11 +71,15 @@ def compute_all_kpis(unified_df):
             kpis["unique_trained_manpower"] / kpis["total_manpower"] * 100, 1
         )
 
-    # Pending count
+    # Training status breakdowns (FIXED: separate counts)
     if "Training_Status" in df.columns:
-        kpis["pending_count"] = df["Training_Status"].isin(["PENDING", "ELIGIBLE"]).sum()
+        status_counts = df["Training_Status"].value_counts().to_dict()
+        # Pending = only PENDING (trained before, needs refresher) + ELIGIBLE (technical, never trained)
+        kpis["pending_count"] = status_counts.get("PENDING", 0) + status_counts.get("ELIGIBLE", 0)
+        kpis["completed_count"] = status_counts.get("COMPLETED", 0)
+        kpis["attended_count"] = status_counts.get("ATTENDED", 0)
+        kpis["not_trained_count"] = status_counts.get("NOT_TRAINED", 0)
     else:
-        # Estimate: roster-only employees
         if "Match_Method" in df.columns:
             kpis["pending_count"] = (df["Match_Method"] == "ROSTER_ONLY").sum()
 
@@ -95,7 +103,7 @@ def compute_all_kpis(unified_df):
     if conf_col in df.columns:
         kpis["unresolved_mapping_count"] = (df[conf_col] == "UNRESOLVED").sum()
 
-    # Dealerships at risk
+    # Dealerships at risk (fewer than MIN_L3_L4_PER_DEALERSHIP specialists)
     if "Dealer Code" in df.columns and "post_score" in df.columns:
         dealer_specs = df.groupby("Dealer Code")["post_score"].apply(
             lambda g: (g.astype(int, errors="ignore") >= 3).sum()
@@ -117,5 +125,9 @@ def compute_all_kpis(unified_df):
         dist = df[conf_col].value_counts().to_dict()
         for c in CONFIDENCE_ORDER:
             kpis["confidence_distribution"][c] = dist.get(c, 0)
+
+    # Cross-ID suspects
+    if "CROSS_ID_DUPLICATE_SUSPECT" in df.columns:
+        kpis["cross_id_suspect_count"] = int(df["CROSS_ID_DUPLICATE_SUSPECT"].sum())
 
     return kpis

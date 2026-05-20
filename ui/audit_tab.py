@@ -1,7 +1,8 @@
 """
-Audit Tab — Mapping confidence, duplicate log, unresolved queue, data quality.
-Fixed: Vectorized operations instead of row-by-row iteration for speed.
-Accurate data quality detection for future dates, regressions, and missing names.
+Audit Tab — Mapping confidence, duplicate log, unresolved queue,
+cross-ID suspects, data quality issues.
+FIXED: Shows cross-ID duplicate suspects, training status breakdown,
+vectorized operations for speed.
 """
 import streamlit as st
 import plotly.express as px
@@ -32,6 +33,14 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
 
         with chart2:
             st.dataframe(conf_counts, height=200)
+
+        # Training Status Breakdown
+        if "Training_Status" in unified_df.columns:
+            st.markdown("#### Training Status Breakdown")
+            status_counts = unified_df["Training_Status"].value_counts().reset_index()
+            status_counts.columns = ["Status", "Count"]
+            status_counts["Pct"] = (status_counts["Count"] / max(status_counts["Count"].sum(), 1) * 100).round(1)
+            st.dataframe(status_counts, height=200)
     else:
         st.info("No confidence data available.")
 
@@ -43,7 +52,37 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                         "DATA_QUALITY_STATUS", "DATA_QUALITY_REASON"] if c in duplicate_df.columns]
         st.dataframe(duplicate_df[display_cols] if display_cols else duplicate_df, height=300)
     else:
-        st.success("No duplicate records detected.")
+        st.success("No exact duplicate records detected.")
+
+    # ── Suspect Duplicates (Fuzzy Name Matches) ─────────────────────────────
+    st.markdown("#### Suspect Duplicates (Fuzzy Name Matches)")
+    if unified_df is not None and not unified_df.empty:
+        suspect_col = None
+        if "DATA_QUALITY_STATUS" in unified_df.columns:
+            suspects = unified_df[unified_df["DATA_QUALITY_STATUS"] == "SUSPECT_DUPLICATE"]
+            suspect_col = "DATA_QUALITY_STATUS"
+        else:
+            suspects = pd.DataFrame()
+
+        # Also check cross-ID suspects from matching engine
+        if "CROSS_ID_DUPLICATE_SUSPECT" in unified_df.columns:
+            cross_suspects = unified_df[unified_df["CROSS_ID_DUPLICATE_SUSPECT"] == True]
+            if not cross_suspects.empty:
+                if suspects.empty:
+                    suspects = cross_suspects
+                else:
+                    suspects = pd.concat([suspects, cross_suspects]).drop_duplicates()
+
+        if not suspects.empty:
+            st.markdown(f"**{len(suspects)} suspect duplicate records** — different Star IDs, very similar names at same dealer")
+            display_cols = [c for c in ["Star ID", "Name", "Dealer Code", "Dealer Name",
+                            "DATA_QUALITY_STATUS", "DATA_QUALITY_REASON",
+                            "CROSS_ID_DUPLICATE_NOTE"] if c in suspects.columns]
+            st.dataframe(suspects[display_cols] if display_cols else suspects, height=300)
+        else:
+            st.success("No suspect duplicates detected.")
+    else:
+        st.info("No data loaded.")
 
     # ── Unresolved Queue ────────────────────────────────────────────────────
     st.markdown("#### Unresolved Identity Queue (PENDING_MAPPING_REVIEW)")
@@ -56,12 +95,12 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
     else:
         st.success("No unresolved records. All identities mapped.")
 
-    # ── Data Quality Issues (VECTORIZED — no row iteration) ─────────────────
+    # ── Data Quality Issues (VECTORIZED) ────────────────────────────────────
     st.markdown("#### Data Quality Issues")
     if unified_df is not None and not unified_df.empty:
         issues_frames = []
 
-        # Future dates — vectorized
+        # Future dates
         if "FUTURE_JOINING_FLAG" in unified_df.columns:
             future = unified_df[unified_df["FUTURE_JOINING_FLAG"] == True]
             if not future.empty:
@@ -70,7 +109,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 f_df["Issue_Description"] = "Joining Date is in the future"
                 issues_frames.append(f_df)
 
-        # Skill regressions — vectorized
+        # Skill regressions
         if "SKILL_REGRESSION_FLAG" in unified_df.columns:
             regressions = unified_df[unified_df["SKILL_REGRESSION_FLAG"] == True]
             if not regressions.empty:
@@ -85,7 +124,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                     r_df["Issue_Description"] = "Post-training skill lower than pre-training"
                 issues_frames.append(r_df)
 
-        # Missing names — vectorized
+        # Missing names
         if "Name" in unified_df.columns:
             missing_name = unified_df[
                 unified_df["Name"].isna() | (unified_df["Name"].astype(str).str.strip() == "")
@@ -95,6 +134,24 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 m_df["Issue_Type"] = "MISSING_NAME"
                 m_df["Issue_Description"] = "Employee name is missing"
                 issues_frames.append(m_df)
+
+        # Missing prerequisite (L4 without L1-L3 progression)
+        if "MISSING_PREREQUISITE_FLAG" in unified_df.columns:
+            prereq = unified_df[unified_df["MISSING_PREREQUISITE_FLAG"] == True]
+            if not prereq.empty:
+                p_df = prereq[["Star ID", "Name", "Dealer Code"]].head(100).copy()
+                p_df["Issue_Type"] = "MISSING_PREREQUISITE"
+                p_df["Issue_Description"] = "Skill level progression has gaps (e.g., L4 without L2)"
+                issues_frames.append(p_df)
+
+        # Name mismatches (Pass 1 matched by ID but names don't match)
+        if "Match_Method" in unified_df.columns:
+            name_conflicts = unified_df[unified_df["Match_Method"].str.contains("NAME_CONFLICT|NAME_MISMATCH", na=False)]
+            if not name_conflicts.empty:
+                n_df = name_conflicts[["Star ID", "Name", "Dealer Code"]].head(100).copy()
+                n_df["Issue_Type"] = "NAME_MISMATCH"
+                n_df["Issue_Description"] = "Star ID matched but names differ between training and roster"
+                issues_frames.append(n_df)
 
         if issues_frames:
             issues_df = pd.concat(issues_frames, ignore_index=True)

@@ -1,11 +1,12 @@
 """
-Training Pipeline Module — Training status assignment, rolling backlog
-computation, and nomination list generation.
+Training Pipeline Module — Training status assignment, rolling backlog,
+and nomination list generation.
+FIXED: Smart status logic, proper pending age, realistic backlog sizing.
 """
 import datetime
 import pandas as pd
 import numpy as np
-from config.constants import TRAINING_STATUSES, CURRENT_FY, SKILL_SCORE_MAP
+from config.constants import TRAINING_STATUSES, CURRENT_FY, SKILL_SCORE_MAP, TECHNICAL_DESIGNATIONS
 from config.settings import (
     DEFAULT_NOMINATION_TOP_N,
     PENDING_AGE_CRITICAL_MONTHS,
@@ -17,85 +18,112 @@ from utils.date_utils import months_since, fy_end_date, parse_date_safe
 
 def assign_training_status(row):
     """Assign a training status to an employee row.
-    Returns one of TRAINING_STATUSES values.
+    FIXED: Proper separation of trained/untrained/pending/not-eligible.
+
     Logic:
-      - COMPLETED: training in current FY with positive post-score
-      - ATTENDED: training in current FY but no skill improvement
-      - PENDING: had training in prior FY, not yet in current
-      - ELIGIBLE: no training history at all
-      - NOT_ELIGIBLE: non-technical roles with no requirements
+      - COMPLETED: trained in current FY AND post-score improved over pre-score
+      - ATTENDED: trained in current FY but no measurable skill improvement
+      - PENDING: trained in a PRIOR FY but not in current FY → needs refresher
+      - ELIGIBLE: never trained BUT is in a TECHNICAL_DESIGNATION → should be trained
+      - NOT_TRAINED: never trained and not in a technical role → informational only
+      - NOT_ELIGIBLE: explicit non-training role (e.g., admin, manager with no tech duties)
     """
     try:
         fy = str(row.get("Training year", "")).strip()
         post = compute_skill_score(row.get("SKILL LEVEL - POST", row.get("post_score")))
         pre = compute_skill_score(row.get("SKILL LEVEL - PRE", row.get("pre_score")))
         match_method = str(row.get("Match_Method", "")).strip()
+        designation = str(row.get("Designation", "")).strip()
 
-        # Roster-only (never trained)
-        if match_method == "ROSTER_ONLY" or not fy or fy in ("nan", "None", "NAN"):
-            return "ELIGIBLE"
+        has_training = fy and fy not in ("nan", "None", "NAN", "")
 
-        # Current FY with skill gain
+        # ── Roster-only (never appeared in any training file) ────────────
+        if match_method == "ROSTER_ONLY" or not has_training:
+            # Check if this is a technical role that SHOULD be trained
+            if designation in TECHNICAL_DESIGNATIONS:
+                return "ELIGIBLE"
+            else:
+                return "NOT_TRAINED"
+
+        # ── Has training in current FY ───────────────────────────────────
         if fy == CURRENT_FY:
-            if post > 0 and (pre < 0 or post > pre):
+            if post > 0 and pre >= 0 and post > pre:
                 return "COMPLETED"
             elif post >= 0:
                 return "ATTENDED"
             else:
                 return "ATTENDED"
 
-        # Has historical training but not in current FY
+        # ── Has training in a prior FY (but not current) ─────────────────
+        # This employee was trained before but has not been re-trained this year
         return "PENDING"
 
     except Exception:
-        return "ELIGIBLE"
+        return "NOT_TRAINED"
 
 
 def compute_pending_age(row, reference_date=None):
     """Compute how many months an employee has been pending training.
-    Uses last training date if available, else joining date.
-    Returns 0 if no date available.
+    FIXED: Actually produces real month values from FY end dates and joining dates.
+
+    For PENDING employees: months since their last training FY ended
+    For ELIGIBLE employees: months since their Joining Date
+    For others: 0
     """
     if reference_date is None:
         reference_date = datetime.date.today()
 
     try:
-        # Try latest training date first
-        ltd = row.get("LATEST_TRAINING_DATE")
-        if ltd is not None and not (isinstance(ltd, float) and np.isnan(ltd)):
-            dt = parse_date_safe(ltd)
-            if dt:
-                result = months_since(dt, reference_date)
-                return result if result is not None else 0
+        status = str(row.get("Training_Status", "")).strip()
 
-        # Try training year FY end date
-        fy = str(row.get("Training year", "")).strip()
-        if fy and fy not in ("nan", "None", "NAN"):
-            fy_end = fy_end_date(fy)
-            if fy_end:
-                result = months_since(fy_end, reference_date)
-                return result if result is not None else 0
+        # For PENDING: use last training FY end date
+        if status == "PENDING":
+            fy = str(row.get("Training year", "")).strip()
+            if fy and fy not in ("nan", "None", "NAN", ""):
+                fy_end = fy_end_date(fy)
+                if fy_end:
+                    if isinstance(fy_end, str):
+                        try:
+                            fy_end = datetime.datetime.strptime(fy_end, "%Y-%m-%d").date()
+                        except Exception:
+                            try:
+                                fy_end = pd.to_datetime(fy_end).date()
+                            except Exception:
+                                pass
+                    if isinstance(fy_end, (datetime.date, datetime.datetime)):
+                        if isinstance(fy_end, datetime.datetime):
+                            fy_end = fy_end.date()
+                        delta_days = (reference_date - fy_end).days
+                        if delta_days > 0:
+                            return max(1, delta_days // 30)
+                        return 0
 
-        # Fall back to joining date
-        jd = row.get("Joining Date")
-        if jd is not None:
-            dt = parse_date_safe(jd)
-            if dt:
-                result = months_since(dt, reference_date)
-                return result if result is not None else 0
+        # For ELIGIBLE: use joining date
+        if status == "ELIGIBLE":
+            jd = row.get("Joining Date")
+            if jd is not None:
+                dt = parse_date_safe(jd)
+                if dt:
+                    if isinstance(dt, datetime.datetime):
+                        dt = dt.date()
+                    delta_days = (reference_date - dt).days
+                    if delta_days > 0:
+                        return max(1, delta_days // 30)
 
+            # Fallback: if no joining date, assume 6 months pending
+            return 6
+
+        # For COMPLETED/ATTENDED: not pending
         return 0
+
     except Exception:
         return 0
 
 
 def build_rolling_backlog(unified_df, reference_date=None):
     """Build a rolling backlog DataFrame from the unified master.
-    Filters to PENDING, ELIGIBLE, and DEFERRED employees.
-    Computes Pending_Age_Months and Training_Priority_Score.
-    Sorts by priority and adds Backlog_Rank.
-    
-    Returns backlog DataFrame.
+    FIXED: Only includes PENDING (needs refresher) and ELIGIBLE (technical, never trained).
+    Excludes NOT_TRAINED, NOT_ELIGIBLE, COMPLETED, ATTENDED.
     """
     if unified_df is None or unified_df.empty:
         return pd.DataFrame()
@@ -109,14 +137,14 @@ def build_rolling_backlog(unified_df, reference_date=None):
     if "Training_Status" not in df.columns:
         df["Training_Status"] = df.apply(assign_training_status, axis=1)
 
-    # Filter to backlog-eligible statuses
-    backlog_statuses = ["PENDING", "ELIGIBLE", "DEFERRED"]
+    # Only include employees who actually need training
+    backlog_statuses = ["PENDING", "ELIGIBLE"]
     backlog = df[df["Training_Status"].isin(backlog_statuses)].copy()
 
     if backlog.empty:
         return pd.DataFrame()
 
-    # De-duplicate by Star ID (keep earliest/most stale record)
+    # De-duplicate by Star ID (keep the record with the oldest/most stale training)
     if "Star ID" in backlog.columns:
         backlog = backlog.sort_values(
             "LATEST_TRAINING_DATE", ascending=True, na_position="first"

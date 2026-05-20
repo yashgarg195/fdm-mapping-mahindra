@@ -1,8 +1,7 @@
 """
 Identity Resolution Module — 7-Pass multi-strategy matching engine.
-Maps training records (potentially missing Star IDs) to manpower roster entries.
-Every row gets Match_Method, Match_Confidence, Fuzzy_Score, Phonetic_Score, Matched_Candidate.
-ZERO row loss guaranteed.
+FIXED: Pass 1 now validates names to produce real fuzzy/phonetic scores.
+Cross-ID duplicate detection. Training orphan detection.
 """
 import pandas as pd
 import numpy as np
@@ -44,40 +43,33 @@ def _build_indexes(manpower_df):
         rec = row.to_dict()
         rec["_idx"] = idx
 
-        # Star ID index
         sid = clean_star_id(rec.get("Star ID"))
         if sid:
             rec["_star_id_clean"] = sid
             star_id_map[sid] = rec
 
-        # Aadhar index
         aadhar = normalize_aadhar(rec.get("AadharCardNumber"))
         if aadhar:
             rec["_aadhar_clean"] = aadhar
             aadhar_map[aadhar] = rec
 
-        # Emp Code index
         emp = str(rec.get("Emp Code", "")).strip().upper()
         if emp and emp not in ("NAN", "NONE", ""):
             rec["_emp_code_clean"] = emp
             emp_code_map[emp] = rec
 
-        # Name index
         rec["_name_clean"] = normalize_name(rec.get("Name"))
 
-        # Contact index
         contact = normalize_contact(rec.get("Contact No"))
         if contact:
             rec["_contact_clean"] = contact
             contact_map[contact] = rec
 
-        # Dealer grouping
         dc = normalize_dealer_code(rec.get("Dealer Code"))
         if dc:
             rec["_dealer_clean"] = dc
             dealer_group[dc].append(rec)
 
-        # AO grouping
         ao = str(rec.get("Dealer AO", "")).strip().upper()
         if ao and ao not in ("NAN", "NONE"):
             rec["_ao_clean"] = ao
@@ -94,13 +86,13 @@ def _build_indexes(manpower_df):
         "contact_map": contact_map,
         "roster_records": roster_records,
         "global_names": [rec["_name_clean"] for rec in roster_records if rec.get("_name_clean")],
-        "global_name_to_rec": {rec["_name_clean"]: rec for rec in roster_records if rec.get("_name_clean")}
+        "global_name_to_rec": {rec["_name_clean"]: rec for rec in roster_records if rec.get("_name_clean")},
     }
 
 
 def _match_row(t_row, indexes):
     """Run the 7-pass resolution pipeline on a single training row.
-    Returns dict with match result fields.
+    FIXED: Pass 1 now validates name similarity for real confidence scoring.
     """
     result = {
         "Match_Method": "PASS7_UNRESOLVED",
@@ -118,70 +110,79 @@ def _match_row(t_row, indexes):
     t_emp = str(t_row.get("Emp Code", "")).strip().upper()
     t_sid = clean_star_id(t_row.get("Star ID"))
 
-    # ── PASS 1: Exact Identifier Match ──────────────────────────────────────
-    # 1A: Star ID
+    # ── PASS 1: Exact Identifier Match WITH Name Validation ──────────────
+    matched_rec = None
+    match_id_method = None
+
     if t_sid and t_sid in indexes["star_id_map"]:
-        rec = indexes["star_id_map"][t_sid]
+        matched_rec = indexes["star_id_map"][t_sid]
+        match_id_method = "PASS1_EXACT_STAR_ID"
+    elif t_aadhar and t_aadhar in indexes["aadhar_map"]:
+        matched_rec = indexes["aadhar_map"][t_aadhar]
+        match_id_method = "PASS1_EXACT_AADHAR"
+    elif t_emp and t_emp not in ("NAN", "NONE", "") and t_emp in indexes["emp_code_map"]:
+        matched_rec = indexes["emp_code_map"][t_emp]
+        match_id_method = "PASS1_EXACT_EMP_CODE"
+
+    if matched_rec:
+        r_name = matched_rec.get("_name_clean", "")
+        # Compute REAL fuzzy and phonetic scores between the two names
+        if t_name and r_name:
+            real_fuzzy = fuzzy_name_match(t_name, r_name)
+            real_phonetic = phonetic_match(t_name, r_name)
+        elif not t_name and not r_name:
+            real_fuzzy = 100.0  # both empty = trivial match
+            real_phonetic = 100.0
+        else:
+            real_fuzzy = 0.0  # one has name, other doesn't
+            real_phonetic = 0.0
+
+        # Determine confidence based on name validation
+        if real_fuzzy >= 88:
+            confidence = "HIGH"
+        elif real_fuzzy >= 60:
+            confidence = "MEDIUM"
+            match_id_method += "_NAME_MISMATCH"
+        elif real_fuzzy >= 30:
+            confidence = "LOW"
+            match_id_method += "_NAME_CONFLICT"
+        else:
+            confidence = "LOW"
+            match_id_method += "_NAME_CONFLICT"
+
         result.update({
-            "Match_Method": "PASS1_EXACT_STAR_ID",
-            "Match_Confidence": "HIGH",
-            "Fuzzy_Score": 100.0,
-            "Phonetic_Score": 100.0,
-            "Matched_Candidate": str(t_sid),
-            "_matched_rec": rec,
+            "Match_Method": match_id_method,
+            "Match_Confidence": confidence,
+            "Fuzzy_Score": round(real_fuzzy, 2),
+            "Phonetic_Score": round(real_phonetic, 2),
+            "Matched_Candidate": str(matched_rec.get("_star_id_clean", t_sid or "")),
+            "_matched_rec": matched_rec,
         })
         return result
 
-    # 1B: Aadhar
-    if t_aadhar and t_aadhar in indexes["aadhar_map"]:
-        rec = indexes["aadhar_map"][t_aadhar]
-        result.update({
-            "Match_Method": "PASS1_EXACT_AADHAR",
-            "Match_Confidence": "HIGH",
-            "Fuzzy_Score": 100.0,
-            "Phonetic_Score": 100.0,
-            "Matched_Candidate": str(rec.get("_star_id_clean", "")),
-            "_matched_rec": rec,
-        })
-        return result
-
-    # 1C: Emp Code
-    if t_emp and t_emp not in ("NAN", "NONE", "") and t_emp in indexes["emp_code_map"]:
-        rec = indexes["emp_code_map"][t_emp]
-        result.update({
-            "Match_Method": "PASS1_EXACT_EMP_CODE",
-            "Match_Confidence": "HIGH",
-            "Fuzzy_Score": 100.0,
-            "Phonetic_Score": 100.0,
-            "Matched_Candidate": str(rec.get("_star_id_clean", "")),
-            "_matched_rec": rec,
-        })
-        return result
-
-    # ── PASS 2: Exact Composite Key (name + dealer + contact) ───────────────
+    # ── PASS 2: Exact Composite Key (name + dealer + contact) ───────────
     if t_name and t_dealer:
         candidates = indexes["dealer_group"].get(t_dealer, [])
         for rec in candidates:
             r_name = rec.get("_name_clean")
             if r_name and r_name == t_name:
-                # Bonus: check contact for certainty
+                real_fuzzy = 100.0
+                real_phonetic = phonetic_match(t_name, r_name) if t_name else 100.0
                 conf = "HIGH"
                 if t_contact and rec.get("_contact_clean"):
-                    if t_contact == rec.get("_contact_clean"):
-                        conf = "HIGH"
-                    else:
+                    if t_contact != rec.get("_contact_clean"):
                         conf = "MEDIUM"
                 result.update({
                     "Match_Method": "PASS2_EXACT_NAME_DEALER",
                     "Match_Confidence": conf,
-                    "Fuzzy_Score": 100.0,
-                    "Phonetic_Score": 100.0,
+                    "Fuzzy_Score": real_fuzzy,
+                    "Phonetic_Score": round(real_phonetic, 2),
                     "Matched_Candidate": str(rec.get("_star_id_clean", "")),
                     "_matched_rec": rec,
                 })
                 return result
 
-    # ── PASS 3: Fuzzy Name + Same Dealer ────────────────────────────────────
+    # ── PASS 3: Fuzzy Name + Same Dealer ────────────────────────────────
     if t_name and t_dealer:
         candidates = indexes["dealer_group"].get(t_dealer, [])
         best_score = 0
@@ -198,8 +199,8 @@ def _match_row(t_row, indexes):
             result.update({
                 "Match_Method": "PASS3_FUZZY_NAME_DEALER",
                 "Match_Confidence": "MEDIUM",
-                "Fuzzy_Score": best_score,
-                "Phonetic_Score": phonetic_match(t_name, best_rec.get("_name_clean", "")),
+                "Fuzzy_Score": round(best_score, 2),
+                "Phonetic_Score": round(phonetic_match(t_name, best_rec.get("_name_clean", "")), 2),
                 "Matched_Candidate": str(best_rec.get("_star_id_clean", "")),
                 "_matched_rec": best_rec,
             })
@@ -208,22 +209,22 @@ def _match_row(t_row, indexes):
             result.update({
                 "Match_Method": "PASS3_FUZZY_NAME_DEALER_LOW",
                 "Match_Confidence": "LOW",
-                "Fuzzy_Score": best_score,
-                "Phonetic_Score": phonetic_match(t_name, best_rec.get("_name_clean", "")),
+                "Fuzzy_Score": round(best_score, 2),
+                "Phonetic_Score": round(phonetic_match(t_name, best_rec.get("_name_clean", "")), 2),
                 "Matched_Candidate": str(best_rec.get("_star_id_clean", "")),
                 "_matched_rec": best_rec,
             })
             return result
 
-    # ── PASS 4: Dealer-Transfer-Aware (name across ALL dealers) ─────────────
+    # ── PASS 4: Dealer-Transfer-Aware (global rapidfuzz) ────────────────
     if t_name and ENABLE_GLOBAL_FUZZY_PASS:
         try:
             from rapidfuzz import process, fuzz
             match = process.extractOne(
-                t_name, 
-                indexes.get("global_names", []), 
+                t_name,
+                indexes.get("global_names", []),
                 scorer=fuzz.token_sort_ratio,
-                score_cutoff=FUZZY_GLOBAL_THRESHOLD
+                score_cutoff=FUZZY_GLOBAL_THRESHOLD,
             )
             if match:
                 matched_name, best_score, _ = match
@@ -233,7 +234,7 @@ def _match_row(t_row, indexes):
                         "Match_Method": "PASS4_TRANSFER_MATCH",
                         "Match_Confidence": "LOW",
                         "Fuzzy_Score": round(best_score, 2),
-                        "Phonetic_Score": phonetic_match(t_name, best_rec.get("_name_clean", "")),
+                        "Phonetic_Score": round(phonetic_match(t_name, best_rec.get("_name_clean", "")), 2),
                         "Matched_Candidate": str(best_rec.get("_star_id_clean", "")),
                         "_matched_rec": best_rec,
                     })
@@ -241,7 +242,7 @@ def _match_row(t_row, indexes):
         except Exception:
             pass
 
-    # ── PASS 5: Phonetic Matching (same dealer) ────────────────────────────
+    # ── PASS 5: Phonetic Matching (same dealer) ────────────────────────
     if t_name and t_dealer:
         candidates = indexes["dealer_group"].get(t_dealer, [])
         best_jw = 0
@@ -258,18 +259,17 @@ def _match_row(t_row, indexes):
                 best_jw = jw
                 best_rec = rec
         if best_rec and best_jw >= PHONETIC_JARO_THRESHOLD:
-            p_score = phonetic_match(t_name, best_rec.get("_name_clean", ""))
             result.update({
                 "Match_Method": "PASS5_PHONETIC",
                 "Match_Confidence": "LOW",
-                "Fuzzy_Score": fuzzy_name_match(t_name, best_rec.get("_name_clean", "")),
-                "Phonetic_Score": p_score,
+                "Fuzzy_Score": round(fuzzy_name_match(t_name, best_rec.get("_name_clean", "")), 2),
+                "Phonetic_Score": round(phonetic_match(t_name, best_rec.get("_name_clean", "")), 2),
                 "Matched_Candidate": str(best_rec.get("_star_id_clean", "")),
                 "_matched_rec": best_rec,
             })
             return result
 
-    # ── PASS 6: Probabilistic Composite Scoring (AO-level, then global) ─────
+    # ── PASS 6: Probabilistic Composite (AO-level, then limited global) ──
     if t_name:
         t_ao = str(t_row.get("Dealer AO", "")).strip().upper()
         search_pool = []
@@ -307,14 +307,14 @@ def _match_row(t_row, indexes):
             result.update({
                 "Match_Method": "PASS6_PROBABILISTIC",
                 "Match_Confidence": conf,
-                "Fuzzy_Score": best_fz,
-                "Phonetic_Score": best_ph,
+                "Fuzzy_Score": round(best_fz, 2),
+                "Phonetic_Score": round(best_ph, 2),
                 "Matched_Candidate": str(best_rec.get("_star_id_clean", "")),
                 "_matched_rec": best_rec,
             })
             return result
 
-    # ── PASS 7: Unresolved ──────────────────────────────────────────────────
+    # ── PASS 7: Unresolved ──────────────────────────────────────────────
     return result
 
 
@@ -327,59 +327,110 @@ def _normalize_model_name(model):
     return m
 
 
+def _detect_cross_id_duplicates(unified_df):
+    """Detect potential cross-ID duplicates: different Star IDs with very
+    similar names at the same dealer. Flags them in-place."""
+    if "Star ID" not in unified_df.columns or "Dealer Code" not in unified_df.columns:
+        unified_df["CROSS_ID_DUPLICATE_SUSPECT"] = False
+        return unified_df
+
+    unified_df["CROSS_ID_DUPLICATE_SUSPECT"] = False
+    unified_df["CROSS_ID_DUPLICATE_NOTE"] = ""
+
+    try:
+        from rapidfuzz import fuzz
+
+        # Group by dealer, check for similar names with different Star IDs
+        if "Dealer Code" in unified_df.columns:
+            # Get unique employee per dealer (Star ID + Name + Dealer Code)
+            uniq = unified_df.drop_duplicates(subset=["Star ID", "Dealer Code"])[
+                ["Star ID", "Name", "Dealer Code"]
+            ].copy()
+            uniq["_name_clean"] = uniq["Name"].apply(normalize_name)
+
+            flagged_pairs = set()
+            for dealer_code, group in uniq.groupby("Dealer Code"):
+                if len(group) < 2:
+                    continue
+                names = group["_name_clean"].tolist()
+                sids = group["Star ID"].tolist()
+                for i in range(len(names)):
+                    if not names[i]:
+                        continue
+                    for j in range(i + 1, len(names)):
+                        if not names[j]:
+                            continue
+                        if sids[i] == sids[j]:
+                            continue
+                        score = fuzz.token_sort_ratio(names[i], names[j])
+                        if score >= 92:
+                            flagged_pairs.add((sids[i], sids[j], score))
+                            flagged_pairs.add((sids[j], sids[i], score))
+
+            if flagged_pairs:
+                for sid1, sid2, score in flagged_pairs:
+                    mask = unified_df["Star ID"] == sid1
+                    unified_df.loc[mask, "CROSS_ID_DUPLICATE_SUSPECT"] = True
+                    existing = unified_df.loc[mask, "CROSS_ID_DUPLICATE_NOTE"].iloc[0] if mask.any() else ""
+                    note = f"Similar to Star ID {sid2} (fuzzy={score}%)"
+                    if existing and note not in existing:
+                        note = existing + "; " + note
+                    unified_df.loc[mask, "CROSS_ID_DUPLICATE_NOTE"] = note
+
+    except Exception:
+        pass
+
+    return unified_df
+
+
 def resolve_star_ids(training_df, manpower_df):
     """Run the full 7-pass identity resolution pipeline.
-    
-    Args:
-        training_df: DataFrame of training records (may lack Star IDs)
-        manpower_df: DataFrame of current manpower roster (has Star IDs)
-    
-    Returns:
-        unified_df: Enriched DataFrame with all rows from both inputs.
-        stats: dict with pipeline statistics.
+    FIXED: Real name validation on exact matches, cross-ID duplicate detection,
+    training orphan detection.
     """
     with Timer("Identity Resolution Pipeline"):
-        # Build indexes from manpower
         indexes = _build_indexes(manpower_df)
+        roster_star_ids = set(indexes["star_id_map"].keys())
+
         log_pipeline_event(
             f"Built indexes: {len(indexes['star_id_map'])} Star IDs, "
             f"{len(indexes['dealer_group'])} dealer groups, "
             f"{len(indexes['roster_records'])} roster records"
         )
 
-        # Track which roster records were matched
         matched_roster_ids = set()
         matched_results = []
         pass_counts = defaultdict(int)
         confidence_counts = defaultdict(int)
 
-        # Process each training row
         total = len(training_df)
         for idx, row in training_df.iterrows():
             t_dict = row.to_dict()
             match = _match_row(t_dict, indexes)
 
-            # Merge training data with matched roster demographics
             merged = dict(t_dict)
             if match["_matched_rec"]:
                 rec = match["_matched_rec"]
-                # Copy roster demographics into the training row
                 for col in ROSTER_COLUMNS:
                     if col not in merged or pd.isna(merged.get(col)):
                         merged[col] = rec.get(col)
                 matched_roster_ids.add(rec.get("_star_id_clean"))
-                # Ensure Star ID is populated
                 if not merged.get("Star ID") or str(merged.get("Star ID")).strip() in ("", "nan"):
                     merged["Star ID"] = rec.get("Star ID")
+            else:
+                # Training orphan: Star ID in training but NOT in roster
+                t_sid = clean_star_id(t_dict.get("Star ID"))
+                if t_sid and t_sid not in roster_star_ids:
+                    match["Match_Method"] = "PASS7_NO_ROSTER_MATCH"
+                    match["Match_Confidence"] = "UNRESOLVED"
+                    match["Matched_Candidate"] = "TRAINING_ORPHAN"
 
-            # Add match metadata
             merged["Match_Method"] = match["Match_Method"]
             merged["Match_Confidence"] = match["Match_Confidence"]
             merged["Fuzzy_Score"] = match["Fuzzy_Score"]
             merged["Phonetic_Score"] = match["Phonetic_Score"]
             merged["Matched_Candidate"] = match["Matched_Candidate"]
 
-            # Normalize model name
             merged["LAST MODEL TRAINED"] = _normalize_model_name(
                 merged.get("LAST MODEL TRAINED")
             )
@@ -388,11 +439,9 @@ def resolve_star_ids(training_df, manpower_df):
             pass_counts[match["Match_Method"]] += 1
             confidence_counts[match["Match_Confidence"]] += 1
 
-        # Log matching results
         for method, count in pass_counts.items():
             log_match_event(method, count)
 
-        # Build matched DataFrame
         df_matched = pd.DataFrame(matched_results)
 
         # Append unmatched roster records (employees with no training)
@@ -413,25 +462,21 @@ def resolve_star_ids(training_df, manpower_df):
 
         df_unmatched = pd.DataFrame(unmatched_roster)
 
-        # Combine into unified master
         if not df_unmatched.empty:
             unified_df = pd.concat([df_matched, df_unmatched], ignore_index=True)
         else:
             unified_df = df_matched.copy()
 
-        # ── Post-processing ──────────────────────────────────────────────────
-        # Compute skill scores
+        # ── Post-processing ──────────────────────────────────────────────
         unified_df["pre_score"] = unified_df.get("SKILL LEVEL - PRE", pd.Series(dtype="object")).map(SKILL_SCORE_MAP).fillna(-1).astype(int)
         unified_df["post_score"] = unified_df.get("SKILL LEVEL - POST", pd.Series(dtype="object")).map(SKILL_SCORE_MAP).fillna(-1).astype(int)
 
-        # Skill regression flag
         unified_df["SKILL_REGRESSION_FLAG"] = (
             (unified_df["pre_score"] >= 0) &
             (unified_df["post_score"] >= 0) &
             (unified_df["post_score"] < unified_df["pre_score"])
         )
 
-        # Future joining date flag
         if "Joining Date" in unified_df.columns:
             try:
                 jd = pd.to_datetime(unified_df["Joining Date"], errors="coerce")
@@ -441,7 +486,6 @@ def resolve_star_ids(training_df, manpower_df):
         else:
             unified_df["FUTURE_JOINING_FLAG"] = False
 
-        # Latest training date per employee
         if "Training year" in unified_df.columns:
             unified_df["_fy_end"] = unified_df["Training year"].apply(fy_end_date)
             unified_df["LATEST_TRAINING_DATE"] = pd.to_datetime(
@@ -463,7 +507,6 @@ def resolve_star_ids(training_df, manpower_df):
                 )
                 if not post_scores:
                     continue
-                # Validate sequential progression
                 validated = 0
                 for level in [1, 2, 3, 4]:
                     if level in post_scores:
@@ -475,6 +518,9 @@ def resolve_star_ids(training_df, manpower_df):
                 mask = unified_df["Star ID"] == sid
                 unified_df.loc[mask, "VALIDATED_SKILL_LEVEL"] = validated
                 unified_df.loc[mask, "MISSING_PREREQUISITE_FLAG"] = missing
+
+        # ── Cross-ID Duplicate Detection ─────────────────────────────────
+        unified_df = _detect_cross_id_duplicates(unified_df)
 
         # Build stats
         stats = {
@@ -489,6 +535,7 @@ def resolve_star_ids(training_df, manpower_df):
             "future_joining_count": int(unified_df["FUTURE_JOINING_FLAG"].sum()),
             "skill_regression_count": int(unified_df["SKILL_REGRESSION_FLAG"].sum()),
             "missing_prerequisite_count": int(unified_df["MISSING_PREREQUISITE_FLAG"].sum()),
+            "cross_id_duplicate_count": int(unified_df["CROSS_ID_DUPLICATE_SUSPECT"].sum()),
         }
 
         log_pipeline_event(
