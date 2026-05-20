@@ -69,8 +69,16 @@ st.markdown(f"""
         color: #231F20;
     }}
     /* Ensure all main-area text is dark */
-    .stApp .stMarkdown, .stApp p, .stApp span, .stApp label,
-    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{
+    section[data-testid="stMain"] .stMarkdown, 
+    section[data-testid="stMain"] p, 
+    section[data-testid="stMain"] span, 
+    section[data-testid="stMain"] label,
+    section[data-testid="stMain"] h1, 
+    section[data-testid="stMain"] h2, 
+    section[data-testid="stMain"] h3, 
+    section[data-testid="stMain"] h4, 
+    section[data-testid="stMain"] h5, 
+    section[data-testid="stMain"] h6 {{
         color: #231F20 !important;
     }}
     header[data-testid="stHeader"] {{
@@ -91,17 +99,22 @@ st.markdown(f"""
         color: white !important;
     }}
     /* Sidebar: dark background, white text */
-    div[data-testid="stSidebar"] {{
-        background-color: {BRAND_DARK_CORE};
-        color: white;
+    section[data-testid="stSidebar"] {{
+        background-color: {BRAND_DARK_CORE} !important;
     }}
-    div[data-testid="stSidebar"] label,
-    div[data-testid="stSidebar"] .stMarkdown,
-    div[data-testid="stSidebar"] .stMarkdown p,
-    div[data-testid="stSidebar"] .stMarkdown h2,
-    div[data-testid="stSidebar"] .stMarkdown h3,
-    div[data-testid="stSidebar"] .stMarkdown span {{
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] .stMarkdown,
+    section[data-testid="stSidebar"] .stMarkdown p,
+    section[data-testid="stSidebar"] .stMarkdown h2,
+    section[data-testid="stSidebar"] .stMarkdown h3,
+    section[data-testid="stSidebar"] .stMarkdown span {{
         color: white !important;
+    }}
+    /* Ensure inputs, selectboxes, and dropdown values in sidebar are readable */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] div,
+    section[data-testid="stSidebar"] div[data-baseweb="select"] span,
+    section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
+        color: #231F20 !important;
     }}
     /* Buttons */
     .stButton>button[kind="primary"] {{
