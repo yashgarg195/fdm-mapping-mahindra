@@ -4,12 +4,23 @@ An enterprise-grade, 100% offline, air-gapped manpower identity resolution and t
 
 ---
 
-## 🚀 Access the Dashboard
+## 🌐 Live Web Portal (Hosted Online)
 
-* **Local:** [http://localhost:8501](http://localhost:8501)
+* **Global Access (Always Online):** [https://fdm-mapping-mahindra.streamlit.app/](https://fdm-mapping-mahindra.streamlit.app/)
+
+*To deploy or manage this free hosting:*
+1. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/).
+2. Click **New app**, select your GitHub repository `yashgarg195/fdm-mapping-mahindra`, branch `main`, and main file path `app.py`.
+3. Click **Deploy**. The app will be hosted at the URL above 24/7.
+
+---
+
+## 🚀 Access the Dashboard Locally
+
+* **Local Link:** [http://localhost:8501](http://localhost:8501)
 * **Network (LAN):** `http://<your-ip>:8501`
 
-To start the dashboard, run:
+To start the dashboard locally, run:
 ```bash
 streamlit run app.py
 ```
@@ -134,7 +145,7 @@ When the user uploads Excel files into the sidebar, the system executes a struct
 - **Uplift Heatmap:** Which dealers × FY combinations show the best/worst skill improvement?
 
 ### Tab 4: 🏢 Product Penetration
-**Use Case:** Assess *geographic* and *product* training coverage gaps.
+**Use Case:** Assess *geographic/product* training coverage gaps.
 - **Zone Gauges:** Visual gauge per zone showing what % of manpower has been trained. Red zone = under 50%.
 - **Dealership Penetration Table:** Per-dealer metrics — total employees, trained count, penetration %, L3/L4 count, readiness score.
 - **Product Readiness:** Which tractor models have been covered in training, how many unique employees, across how many states?
@@ -171,7 +182,7 @@ When the user uploads Excel files into the sidebar, the system executes a struct
 
 ## 🔒 Hard Constraints
 
-- **100% Offline** — no API calls, no cloud, no internet at runtime
+- **100% Offline Capable** — runs purely locally without external APIs
 - **Zero Row Loss** — every uploaded row appears in output
 - **No AI/LLMs** — only classical algorithms (fuzzy, phonetic, rule-based)
 - **Deterministic** — same input always produces same output
