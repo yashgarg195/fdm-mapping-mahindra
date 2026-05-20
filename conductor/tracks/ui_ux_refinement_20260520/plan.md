@@ -27,7 +27,7 @@
     - [x] Implement Feature: Remove graphs from the Skill Analytics tab and add the 0-5 scale explanation and scoring formula text.
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Skill Analytics Refinement' (Protocol in workflow.md)
 
-## Phase 4: Unique Manpower and Audit UI Updates
+## Phase 4: Unique Manpower and Audit UI Updates [checkpoint: 66cd95c]
 - [x] Task: Add filters to Unique Manpower
     - [x] Write Tests: Create tests for Location, Role, and Training Status filters.
     - [x] Implement Feature: Update the Unique Manpower tab to include the new filters while preserving the Zone distribution chart.
