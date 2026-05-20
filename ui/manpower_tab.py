@@ -3,6 +3,7 @@ Manpower Tab — State/zone manpower tables, unique headcount, unresolved count.
 """
 import streamlit as st
 import plotly.express as px
+import pandas as pd
 from config.constants import BRAND_RED, BRAND_CHARCOAL
 from utils.formatting_utils import style_kpi_card, format_count
 from analytics.manpower import state_manpower_table, zone_manpower_table, unique_manpower_count
