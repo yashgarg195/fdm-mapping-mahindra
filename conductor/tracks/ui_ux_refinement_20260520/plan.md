@@ -19,13 +19,13 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Pending & Nominations Enhancements' (Protocol in workflow.md)
 
 ## Phase 3: Skill Analytics Refinement
-- [ ] Task: Update Skill Score calculation logic
-    - [ ] Write Tests: Add tests to ensure only trained individuals are included in the denominator for skill calculations.
-    - [ ] Implement Feature: Modify logic in the skill analytics module to exclude untrained individuals from the skill score.
-- [ ] Task: Refine Skill Analytics UI
-    - [ ] Write Tests: Verify the UI renders the explanations and does not render the old graphs.
-    - [ ] Implement Feature: Remove graphs from the Skill Analytics tab and add the 0-5 scale explanation and scoring formula text.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Skill Analytics Refinement' (Protocol in workflow.md)
+- [x] Task: Update Skill Score calculation logic
+    - [x] Write Tests: Add tests to ensure only trained individuals are included in the denominator for skill calculations.
+    - [x] Implement Feature: Modify logic in the skill analytics module to exclude untrained individuals from the skill score.
+- [x] Task: Refine Skill Analytics UI
+    - [x] Write Tests: Verify the UI renders the explanations and does not render the old graphs.
+    - [x] Implement Feature: Remove graphs from the Skill Analytics tab and add the 0-5 scale explanation and scoring formula text.
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Skill Analytics Refinement' (Protocol in workflow.md)
 
 ## Phase 4: Unique Manpower and Audit UI Updates
 - [ ] Task: Add filters to Unique Manpower

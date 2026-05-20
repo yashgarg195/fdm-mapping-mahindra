@@ -2,14 +2,10 @@
 Skill Tab — Skill distribution, regression table, uplift heatmap.
 """
 import streamlit as st
-import plotly.express as px
-import plotly.graph_objects as go
 import pandas as pd
-import numpy as np
 from config.constants import BRAND_RED, BRAND_CHARCOAL, SKILL_SCORE_MAP
 from utils.formatting_utils import style_kpi_card
-from analytics.skill_analytics import skill_distribution, regression_cases, skill_uplift_report
-
+from analytics.skill_analytics import regression_cases
 
 def render_skill(unified_df, filters):
     """Render the Skill Analytics tab."""
@@ -19,11 +15,31 @@ def render_skill(unified_df, filters):
 
     df = unified_df.copy()
 
+    # Exclude untrained individuals from skill calculations
+    if "Training_Status" in df.columns:
+        df = df[~df["Training_Status"].isin(["NOT_TRAINED", "ELIGIBLE"])]
+
+    if df.empty:
+        st.info("No trained manpower data available for skill analytics.")
+        return
+
     # Compute scores if not present
     if "pre_score" not in df.columns:
         df["pre_score"] = df.get("SKILL LEVEL - PRE", pd.Series(dtype="object")).map(SKILL_SCORE_MAP).fillna(-1).astype(int)
     if "post_score" not in df.columns:
         df["post_score"] = df.get("SKILL LEVEL - POST", pd.Series(dtype="object")).map(SKILL_SCORE_MAP).fillna(-1).astype(int)
+
+    # ── Skill Score Explanation ──────────────────────────────────────────────
+    st.markdown("""
+    ### ℹ️ About Skill Scoring
+    The Skill Score measures the technical proficiency of our manpower on a **0 to 5 scale**:
+    * **0**: Unrated / Entry Level
+    * **1-2 (L1/L2)**: Basic to Intermediate
+    * **3-4 (L3/L4)**: Advanced Specialist
+    * **5 (L5)**: Master / Expert
+    
+    **Formula:** The uplift is calculated as the simple average of `Post-Training Score - Pre-Training Score` for all *trained* individuals. Untrained individuals are excluded from these metrics.
+    """)
 
     # ── KPI Cards ───────────────────────────────────────────────────────────
     valid_pre = df[df["pre_score"] >= 0]["pre_score"]
@@ -40,44 +56,6 @@ def render_skill(unified_df, filters):
         gain = avg_post - avg_pre
         sign = "+" if gain >= 0 else ""
         st.markdown(style_kpi_card("SKILL UPLIFT", f"{sign}{gain:.2f}", "AVG DELTA", "#90EE90" if gain >= 0 else "#FF8C00"), unsafe_allow_html=True)
-
-    # ── Skill Distribution Chart ────────────────────────────────────────────
-    chart1, chart2 = st.columns(2)
-
-    with chart1:
-        st.markdown("#### Skill Level Distribution")
-        dist = skill_distribution(df)
-        if not dist.empty:
-            fig = px.bar(
-                dist, x="Skill_Level", y="Count",
-                color="Skill_Level",
-                color_discrete_sequence=[BRAND_CHARCOAL, "#90EE90", "#FFD700", "#FF8C00", BRAND_RED, "#E6E7E8"],
-            )
-            fig.update_layout(plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20), showlegend=False)
-            st.plotly_chart(fig, key="skill_dist_chart")
-        else:
-            st.info("No skill distribution data.")
-
-    with chart2:
-        st.markdown("#### Skill Uplift Heatmap (Dealer × FY)")
-        uplift = skill_uplift_report(df)
-        if not uplift.empty and len(uplift) > 1:
-            try:
-                pivot = uplift.pivot_table(index="Dealer_Name", columns="FY", values="Avg_Uplift", aggfunc="mean").fillna(0)
-                if not pivot.empty:
-                    fig = px.imshow(
-                        pivot.values, x=list(pivot.columns), y=list(pivot.index),
-                        color_continuous_scale=["#FFCCCC", "#FFFFFF", "#CCFFCC"],
-                        aspect="auto",
-                    )
-                    fig.update_layout(margin=dict(t=20, b=20, l=20, r=20))
-                    st.plotly_chart(fig, key="uplift_heatmap")
-                else:
-                    st.info("Not enough data for heatmap.")
-            except Exception:
-                st.info("Unable to generate heatmap.")
-        else:
-            st.info("Not enough data for heatmap.")
 
     # ── Regression Table ────────────────────────────────────────────────────
     st.markdown("#### ⚠️ Skill Regression Cases")
