@@ -11,6 +11,10 @@ from config.constants import BRAND_RED, CONFIDENCE_ORDER, CONFIDENCE_COLORS
 
 def _safe_val(val):
     """Convert a value to an Excel-safe type."""
+    # pd.NA (pandas NAType from nullable Int64/boolean dtypes) is not handled
+    # by xlsxwriter — convert it to empty string before any other checks.
+    if val is pd.NA:
+        return ""
     if val is None or (isinstance(val, float) and np.isnan(val)):
         return ""
     if isinstance(val, (pd.Timestamp, datetime.datetime)):
@@ -20,6 +24,7 @@ def _safe_val(val):
     if isinstance(val, bool):
         return "YES" if val else "NO"
     return val
+
 
 
 def generate_excel_report(unified_df, backlog_df=None, duplicate_df=None, audit_log=None):
