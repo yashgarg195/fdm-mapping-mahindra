@@ -16,7 +16,7 @@ def render_sidebar():
     }
 
     st.sidebar.markdown(
-        f"<h2 style='color:{BRAND_CHARCOAL}; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; margin-top:-16px;'>"
+        f"<h2 style='color:var(--foreground); font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; margin-top:-16px;'>"
         "MAHINDRA TRACTORS</h2>",
         unsafe_allow_html=True,
     )

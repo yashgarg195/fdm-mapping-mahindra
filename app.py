@@ -64,29 +64,18 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     :root {{
-      --background: #ffffff;
-      --foreground: #1A1A2E;
-      --primary: #1A1A2E;
-      --muted: #F7F7F9;
-      --muted-foreground: #8B8BA7;
-      --accent: #F3F3F5;
+      --background: var(--background-color);
+      --foreground: var(--text-color);
+      --primary: var(--primary-color);
+      --muted: var(--secondary-background-color);
+      --muted-foreground: var(--faded-text-color, #8B8BA7);
+      --accent: var(--secondary-background-color);
       --destructive: #C62828;
-      --input-background: #ffffff;
+      --input-background: var(--background-color);
       --radius: 6px;
       --brand-red: {BRAND_RED};
-      --brand-charcoal: {BRAND_CHARCOAL};
+      --brand-charcoal: var(--text-color);
       --topnav-brand-width: 480px;
-    }}
-    @media (prefers-color-scheme: dark) {{
-      :root {{
-        --background: #111118;
-        --foreground: #F7F7F9;
-        --primary: #F7F7F9;
-        --muted: #252532;
-        --muted-foreground: #B7B7C8;
-        --accent: #1B1B26;
-        --input-background: #111118;
-      }}
     }}
 
     html, body, [class*="css"] {{
@@ -472,12 +461,12 @@ st.markdown(f"""
     .dashboard-intro-summary {{
         width: 100%;
         padding: 12px 18px;
-        background: #F7F7F9;
-        border: 1px solid #E8E8EC;
-        border-left: 4px solid {BRAND_CHARCOAL};
+        background: var(--muted);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--text-color);
         border-radius: 10px;
         font-size: 12px;
-        color: {BRAND_CHARCOAL};
+        color: var(--text-color);
         line-height: 1.45;
         min-height: 58px;
         display: flex;

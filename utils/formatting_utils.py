@@ -106,7 +106,7 @@ margin-top: 6px; line-height: 1.15;">
 def style_section_header(title, subtitle="", first_section=False):
     margin_top = "0px" if first_section else "28px"
     padding_top = "0px" if first_section else "18px"
-    border_top = "none" if first_section else "1px solid #E8E8EC"
+    border_top = "none" if first_section else "1px solid rgba(128, 128, 128, 0.2)"
     return (
         f'<div style="margin: {margin_top} 0 18px; padding-top: {padding_top}; border-top: {border_top};">'
         f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">'
@@ -121,8 +121,8 @@ def style_section_header(title, subtitle="", first_section=False):
 def style_filter_toolbar():
     return """
     <div style="
-        background: #F7F7F9;
-        border: 1px solid #E8E8EC;
+        background: var(--muted);
+        border: 1px solid rgba(128, 128, 128, 0.2);
         border-radius: 8px;
         padding: 10px 14px;
         display: flex;

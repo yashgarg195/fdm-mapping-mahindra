@@ -93,7 +93,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
     # ── Suspect Duplicates (Possible Matches) ───────────────────────────────
     st.markdown(style_section_header("Suspect Duplicates (Possible Matches)", ""), unsafe_allow_html=True)
     st.markdown(
-        "<div style='font-size:0.9rem; color:#555; margin-bottom:15px;'>"
+        "<div style='font-size:0.9rem; color:var(--muted-foreground); margin-bottom:15px;'>"
         "<b>What is a Possible Match?</b> A Possible Match occurs when the system identifies two records with different IDs but very similar names (e.g., 'Amit Kumar' and 'Ameet Kumar') working at the same location. These are flagged for your review to ensure they aren't the same person entered twice."
         "</div>", 
         unsafe_allow_html=True
@@ -271,8 +271,8 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
 
             # ── Local filters ────────────────────────────────────────────────
             st.markdown(
-                "<div style='background:#f3f3f5; border-radius:8px; padding:12px 16px; margin-bottom:12px;'>"
-                "<span style='font-size:0.82rem; font-weight:600; color:#717182;'>FILTER DATA QUALITY TABLE</span>"
+                "<div style='background:var(--muted); border-radius:8px; padding:12px 16px; margin-bottom:12px;'>"
+                "<span style='font-size:0.82rem; font-weight:600; color:var(--muted-foreground);'>FILTER DATA QUALITY TABLE</span>"
                 "</div>",
                 unsafe_allow_html=True,
             )
@@ -344,7 +344,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
             with count_col:
                 st.markdown(
                     f"**{shown_issues:,}** of **{total_issues:,}** data quality issues shown"
-                    + (" &nbsp;·&nbsp; <span style='color:#d4183d;'>filters active</span>"
+                    + (" &nbsp;·&nbsp; <span style='color:var(--brand-red);'>filters active</span>"
                        if any_filter_active else ""),
                     unsafe_allow_html=True,
                 )

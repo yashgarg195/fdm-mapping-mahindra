@@ -143,8 +143,8 @@ def render_overview(unified_df, kpis, filters):
             st.markdown(
                 f"<div style='display:flex; justify-content:space-between; "
                 f"padding:7px 12px; margin-bottom:4px; border-radius:6px; "
-                f"background:#F7F7F9; border: 1px solid #E8E8EC;'>"
-                f"<span style='color:#6B6B8D; font-size:0.85rem;'>{label}</span>"
+                f"background:var(--muted); border: 1px solid rgba(128, 128, 128, 0.2);'>"
+                f"<span style='color:var(--muted-foreground); font-size:0.85rem;'>{label}</span>"
                 f"<span style='color:{color}; font-weight:700; font-size:0.95rem;'>{val:,}</span>"
                 f"</div>",
                 unsafe_allow_html=True,
