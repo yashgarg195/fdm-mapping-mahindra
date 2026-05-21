@@ -9,11 +9,17 @@ No other module should define these values independently.
 import datetime
 
 # ── OFFICIAL BRAND CORPORATE COLOR PALETTE ────────────────────────────────────
-BRAND_RED        = "#d4183d"
-BRAND_CHARCOAL   = "#717182"
-BRAND_DARK_CORE  = "#030213"
-BRAND_LIGHT_GREY = "#ececf0"
-BRAND_WHITE      = "#ffffff"
+BRAND_RED        = "#D2232A"
+BRAND_CHARCOAL   = "#1A1A2E"
+BRAND_DARK_CORE  = "#1A1A2E"
+BRAND_LIGHT_GREY = "#EEEEF2"
+BRAND_WHITE      = "#FFFFFF"
+
+# Neutral / Semantic Colors from Figma
+COLOR_SUCCESS = "#2E7D32"
+COLOR_WARNING = "#F57C00"
+COLOR_CRITICAL = "#C62828"
+COLOR_INFO = "#1565C0"
 
 # ── FISCAL CALENDAR BOUNDARIES ────────────────────────────────────────────────
 CURRENT_FY = "F-26"
@@ -65,19 +71,19 @@ TRAINING_STATUSES = [
 # ── CONFIDENCE TIERS ─────────────────────────────────────────────────────────
 CONFIDENCE_ORDER = ["HIGH", "MEDIUM", "LOW", "FUZZY", "UNRESOLVED"]
 CONFIDENCE_COLORS = {
-    "HIGH":       "#CCFFCC",
-    "MEDIUM":     "#CCFFFF",
-    "LOW":        "#FFE0A0",
-    "FUZZY":      "#FFD0FF",
-    "UNRESOLVED": "#FFCCCC",
+    "HIGH":       "#E8F5E9",
+    "MEDIUM":     "#FFF8E1",
+    "LOW":        "#FFF3E0",
+    "FUZZY":      "#F3E5F5",
+    "UNRESOLVED": "#FFEBEE",
 }
 
 # ── RECALL INTERVAL BUCKETS (legacy reference, replaced by rolling backlog) ──
 RECALL_BUCKETS = [
-    ("CRITICAL",   36, BRAND_RED,       "Critical — 3+ years since last training"),
-    ("OVERDUE",    24, "#FF8C00",       "Overdue — 2–3 years since last training"),
+    ("CRITICAL",   36, COLOR_CRITICAL,  "Critical — 3+ years since last training"),
+    ("OVERDUE",    24, COLOR_WARNING,   "Overdue — 2–3 years since last training"),
     ("DUE_SOON",   18, "#FFD700",       "Due Soon — 18–24 months since last training"),
-    ("RECENT",      6, "#90EE90",       "Recent — 6–18 months since last training"),
+    ("RECENT",      6, COLOR_SUCCESS,   "Recent — 6–18 months since last training"),
     ("CURRENT_FY",  0, BRAND_CHARCOAL,  "Current FY — trained this financial year"),
 ]
 NEVER_TRAINED_COLOR = BRAND_LIGHT_GREY

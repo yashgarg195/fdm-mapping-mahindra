@@ -2,7 +2,7 @@
 Formatting Utilities — Display formatting for percentages, scores,
 and Streamlit-compatible CSS styling.
 """
-from config.constants import CONFIDENCE_COLORS, BRAND_RED, BRAND_CHARCOAL
+from config.constants import CONFIDENCE_COLORS, BRAND_CHARCOAL, COLOR_CRITICAL, COLOR_WARNING, COLOR_SUCCESS
 
 
 def format_pct(value, decimals=1):
@@ -46,7 +46,7 @@ def highlight_confidence(val):
 
 def highlight_critical(val):
     """Return a CSS style for critical values (red background)."""
-    return f"background-color: {BRAND_RED}; color: white; font-weight: bold"
+    return f"background-color: {COLOR_CRITICAL}; color: white; font-weight: bold"
 
 
 def highlight_pending(months):
@@ -54,9 +54,9 @@ def highlight_pending(months):
     try:
         m = int(months)
         if m >= 12:
-            return f"background-color: {BRAND_RED}; color: white"
+            return f"background-color: {COLOR_CRITICAL}; color: white"
         elif m >= 6:
-            return "background-color: #FF8C00; color: white"
+            return f"background-color: {COLOR_WARNING}; color: white"
         elif m >= 3:
             return "background-color: #FFD700; color: black"
         else:
@@ -67,29 +67,91 @@ def highlight_pending(months):
 
 def style_kpi_card(label, value, desc="", border_color=None):
     """Generate HTML for a styled KPI card."""
-    bc = border_color or BRAND_RED
+    bc = border_color or BRAND_CHARCOAL
     return f"""
     <div style="
         background-color: #FFFFFF;
-        border: 2px solid #E6E7E8;
-        border-top: 6px solid {bc};
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        padding: 20px;
+        border: 1px solid #E8E8EC;
+        border-radius: 8px;
+        padding: 14px 16px;
+        min-height: 90px;
+        position: relative;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         margin-bottom: 15px;
-        text-align: center;
-        transition: transform 0.2s ease;
     ">
-        <div style="color: #4D4D4F; font-size: 0.85rem; font-weight: 700;
-                    text-transform: uppercase; letter-spacing: 1px;">
-            {label}
-        </div>
-        <div style="color: #231F20; font-size: 2.5rem; font-weight: 800;
-                    margin-top: 5px;">
-            {value}
-        </div>
-        <div style="color: #888888; font-size: 0.75rem; margin-top: 5px;
-                    text-transform: uppercase;">
-            {desc}
+        <div style="
+            position: absolute;
+            left: 0;
+            top: 14px;
+            width: 3px;
+            height: 32px;
+            background-color: {bc};
+            border-radius: 0 2px 2px 0;
+        "></div>
+        <div style="padding-left: 8px;">
+            <div style="color: #8B8BA7; font-size: 10.5px; font-weight: 600;
+                        text-transform: uppercase; letter-spacing: 0.5px;">
+                {label}
+            </div>
+            <div style="color: #1A1A2E; font-size: 22px; font-weight: 800;
+                        margin-top: 3px; line-height: 1.2;">
+                {value}
+            </div>
+            <div style="color: #8B8BA7; font-size: 10px; font-weight: 500; margin-top: 1px;">
+                {desc}
+            </div>
         </div>
     </div>
+    """
+
+
+def style_section_header(title, subtitle=""):
+    return f"""
+    <div style="margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">
+            <div style="width: 3px; height: 16px; background: #D2232A; border-radius: 2px; flex-shrink: 0;"></div>
+            <span style="font-size: 14px; font-weight: 700; color: #1A1A2E;">{title}</span>
+        </div>
+        <div style="font-size: 11px; color: #8B8BA7; padding-left: 11px;">
+            {subtitle}
+        </div>
+    </div>
+    """
+
+
+def style_filter_toolbar():
+    return """
+    <div style="
+        background: #F7F7F9;
+        border: 1px solid #E8E8EC;
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+    ">
+    """
+
+
+def style_status_badge(status):
+    """Return styled HTML for training status badges."""
+    colors = {
+        "COMPLETED": ("rgba(46,125,50,0.08)", "#2E7D32"),
+        "ATTENDED": ("rgba(120,144,156,0.1)", "#546E7A"),
+        "PENDING": ("rgba(245,124,0,0.1)", "#F57C00"),
+        "ELIGIBLE": ("rgba(33,150,243,0.1)", "#1976D2"),
+        "NOT_TRAINED": ("rgba(0,0,0,0.05)", "#9E9E9E")
+    }
+    bg, fg = colors.get(str(status).upper(), ("rgba(0,0,0,0.05)", "#9E9E9E"))
+    return f"""
+    <span style="
+        background: {bg};
+        color: {fg};
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        display: inline-block;
+    ">{status}</span>
     """
