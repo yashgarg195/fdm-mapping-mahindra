@@ -610,15 +610,34 @@ sidebar_result = render_sidebar()
 # PIPELINE EXECUTION — with real-time progress bar
 # ═══════════════════════════════════════════════════════════════════════════
 if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
-    progress_bar = st.progress(0, text="Starting pipeline...")
-    status_text = st.empty()
+    progress_container = st.empty()
+    def update_tractor(pct, msg):
+        tractor_svg = '''<svg width="40" height="40" viewBox="0 0 24 24" style="transform: scaleX(-1); filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.2));" fill="#D2232A" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 10.5L15 8V6H11V8H6V5H4V12H5.2C5.5 13.7 7.1 15 9 15C10.9 15 12.5 13.7 12.8 12H15.2C15.5 13.7 17.1 15 19 15C20.9 15 22.5 13.7 22.8 12H23V10.5H17.5ZM9 13.5C8.2 13.5 7.5 12.8 7.5 12C7.5 11.2 8.2 10.5 9 10.5C9.8 10.5 10.5 11.2 10.5 12C10.5 12.8 9.8 13.5 9 13.5ZM19 13.5C18.2 13.5 17.5 12.8 17.5 12C17.5 11.2 18.2 10.5 19 10.5C19.8 10.5 20.5 11.2 20.5 12C20.5 12.8 19.8 13.5 19 13.5ZM15 10.5H12V8H15V10.5Z"/></svg>'''
+        html = f"""
+        <div style="width: 100%; padding: 30px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 40px; margin-bottom: 20px;">
+            <div style="width: 80%; max-width: 600px; position: relative;">
+                <div style="position: absolute; top: -36px; left: calc({pct}% - 20px); transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2;">
+                    {tractor_svg}
+                </div>
+                <div style="width: 100%; height: 12px; background-color: #E8E8EC; border-radius: 6px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); position: relative; z-index: 1;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #D2232A, #FF4B53); border-radius: 6px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                </div>
+                <div style="margin-top: 16px; text-align: center; color: #1A1A2E; font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;">
+                    {msg}
+                </div>
+            </div>
+        </div>
+        """
+        progress_container.markdown(html, unsafe_allow_html=True)
+
+    update_tractor(0, "Starting pipeline...")
 
     try:
         with Timer("Full Pipeline"):
             audit_log = []
 
             # ── Step 1: Load & Classify Files (0% → 20%) ────────────────
-            status_text.markdown(f"**Step 1/5:** Loading and classifying files...")
+            update_tractor(5, "Step 1/5: Loading and classifying files...")
             manpower_dfs = []
             training_dfs = []
 
@@ -650,15 +669,14 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                     else:
                         training_dfs.append(standardize_columns(cleaned, TRAINING_COLUMNS))
 
-                progress_bar.progress(
+                update_tractor(
                     int(20 * (i + 1) / len(files)),
-                    text=f"Loaded {uploaded_file.name} ({len(cleaned):,} rows)"
+                    f"Loaded {uploaded_file.name} ({len(cleaned):,} rows)"
                 )
 
             if not manpower_dfs and not training_dfs:
                 st.error("No valid data files loaded. Please check file assignments.")
-                progress_bar.empty()
-                status_text.empty()
+                progress_container.empty()
                 st.stop()
 
             manpower_df = pd.concat(manpower_dfs, ignore_index=True) if manpower_dfs else pd.DataFrame(columns=ROSTER_COLUMNS)
@@ -668,8 +686,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             log_etl_event(len(training_df), len(training_df), 0, "Training")
 
             # ── Step 2: Deduplication (20% → 30%) ────────────────────────
-            progress_bar.progress(20, text="Step 2/5: Detecting duplicates...")
-            status_text.markdown(f"**Step 2/5:** Detecting duplicates in {len(manpower_df):,} manpower + {len(training_df):,} training rows...")
+            update_tractor(20, f"Step 2/5: Detecting duplicates in {len(manpower_df):,} manpower + {len(training_df):,} training rows...")
 
             manpower_clean, manpower_dups = detect_duplicate_manpower(manpower_df)
             training_clean, training_dups = detect_duplicate_training(training_df)
@@ -681,11 +698,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(all_duplicates),
             ))
 
-            progress_bar.progress(30, text=f"Found {len(all_duplicates)} duplicates")
+            update_tractor(30, f"Found {len(all_duplicates)} duplicates")
 
             # ── Step 3: Identity Resolution (30% → 70%) ─────────────────
-            progress_bar.progress(30, text="Step 3/5: Running 7-pass identity resolution...")
-            status_text.markdown(f"**Step 3/5:** Running 7-pass identity resolution on {len(training_clean):,} training rows against {len(manpower_clean):,} roster entries...")
+            update_tractor(30, f"Step 3/5: Running 7-pass identity resolution on {len(training_clean):,} training rows against {len(manpower_clean):,} roster entries...")
 
             if not training_clean.empty and not manpower_clean.empty:
                 unified_df, stats = resolve_star_ids(training_clean, manpower_clean)
@@ -713,11 +729,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(unified_df),
             ))
 
-            progress_bar.progress(70, text=f"Resolved {stats.get('matched_count', 0):,} identities")
+            update_tractor(70, f"Resolved {stats.get('matched_count', 0):,} identities")
 
             # ── Step 4: Training Status & Backlog (70% → 85%) ────────────
-            progress_bar.progress(70, text="Step 4/5: Building backlog & nominations...")
-            status_text.markdown(f"**Step 4/5:** Assigning training status and building rolling backlog...")
+            update_tractor(70, "Step 4/5: Assigning training status and building rolling backlog...")
 
             unified_df["Training_Status"] = unified_df.apply(assign_training_status, axis=1)
             backlog_df = build_rolling_backlog(unified_df)
@@ -729,11 +744,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(backlog_df),
             ))
 
-            progress_bar.progress(85, text=f"Backlog: {len(backlog_df):,} pending employees")
+            update_tractor(85, f"Backlog: {len(backlog_df):,} pending employees")
 
             # ── Step 5: Compute KPIs & Persist (85% → 100%) ─────────────
-            progress_bar.progress(85, text="Step 5/5: Computing KPIs and generating dashboard...")
-            status_text.markdown(f"**Step 5/5:** Computing KPIs across {len(unified_df):,} unified records...")
+            update_tractor(85, f"Step 5/5: Computing KPIs across {len(unified_df):,} unified records...")
 
             st.session_state["raw_training_count"] = len(training_df)
             st.session_state["raw_roster_count"] = len(manpower_df)
@@ -753,8 +767,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 f"Pipeline complete: {len(unified_df)} rows in unified master"
             )
 
-            progress_bar.progress(100, text="Pipeline complete!")
-            status_text.empty()
+            update_tractor(100, "Pipeline complete!")
 
         st.session_state["pipeline_success_message"] = (
             f"Pipeline complete! "
@@ -768,8 +781,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
         st.rerun()
 
     except Exception as e:
-        progress_bar.empty()
-        status_text.empty()
+        progress_container.empty()
         st.error(f"Pipeline error: {e}")
         import traceback
         st.code(traceback.format_exc())
