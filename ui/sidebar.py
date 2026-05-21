@@ -2,7 +2,7 @@
 Sidebar Module — File uploaders and type assignment.
 """
 import streamlit as st
-from config.constants import BRAND_RED
+from config.constants import BRAND_RED, BRAND_CHARCOAL
 
 
 def render_sidebar():
@@ -16,8 +16,8 @@ def render_sidebar():
     }
 
     st.sidebar.markdown(
-        f"<h2 style='color:{BRAND_RED}; font-weight:800; text-transform:uppercase;'>"
-        "MAHINDRA & MAHINDRA TRACTORS</h2>",
+        f"<h2 style='color:{BRAND_CHARCOAL}; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:0;'>"
+        "MAHINDRA TRACTORS</h2>",
         unsafe_allow_html=True,
     )
     st.sidebar.markdown("---")
@@ -85,7 +85,7 @@ def render_sidebar():
 - 🟢 **HIGH** — Exact ID match with matching name
 - 🟡 **MEDIUM** — Strong match with minor name variation
 - 🟠 **LOW** — Weak match — requires supervisor review
-- 🔴 **FUZZY** — Borderline probabilistic match
+- 🟣 **POSSIBLE** — Similar name at same dealership (Possible Match)
 - ⬛ **UNRESOLVED** — Could not be matched — excluded from KPIs
 
 ---

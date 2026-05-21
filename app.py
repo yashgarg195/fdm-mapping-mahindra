@@ -61,14 +61,14 @@ st.markdown(f"""
 
     :root {{
       --background: #ffffff;
-      --foreground: #030213;
-      --primary: {BRAND_RED};
-      --muted: #ececf0;
-      --muted-foreground: #717182;
-      --accent: #e9ebef;
-      --destructive: {BRAND_RED};
-      --input-background: #f3f3f5;
-      --radius: 0.625rem;
+      --foreground: #1A1A2E;
+      --primary: #1A1A2E;
+      --muted: #F7F7F9;
+      --muted-foreground: #8B8BA7;
+      --accent: #F3F3F5;
+      --destructive: #C62828;
+      --input-background: #ffffff;
+      --radius: 6px;
     }}
 
     html, body, [class*="css"] {{
@@ -147,11 +147,12 @@ st.markdown(f"""
         font-weight: 600;
         border: none;
         border-radius: var(--radius);
-        padding: 10px 20px;
+        padding: 8px 14px;
+        font-size: 12px;
     }}
     .stButton>button[kind="primary"]:hover,
     section[data-testid="stSidebar"] .stButton>button[kind="primary"]:hover {{
-        background-color: #b8142f !important;
+        background-color: #0F0F24 !important;
         color: #ffffff !important;
     }}
     /* ── Secondary Buttons (outline style) ─────────────── */
@@ -218,19 +219,17 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# HEADER — Red Mahindra "M" badge (no green tractor)
+# HEADER — Compact Figma Style
 # ═══════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
-<div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
-    <div style="background:{BRAND_RED}; color:white; font-size:2.5rem; font-weight:900;
-                width:60px; height:60px; display:flex; align-items:center; justify-content:center;
-                border-radius:10px;">M</div>
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #E8E8EC; border-radius: 8px;">
+    <div style="width:3px; height:24px; background:{BRAND_RED}; border-radius:2px;"></div>
     <div>
-        <div style="font-size:1.6rem; font-weight:800; color:{BRAND_DARK_CORE};">
-            MAHINDRA TRAINING ANALYTICS & MANPOWER INTELLIGENCE
+        <div style="font-size:15px; font-weight:700; color:{BRAND_CHARCOAL};">
+            MAHINDRA ENTERPRISE DASHBOARD
         </div>
-        <div style="font-size:0.85rem; color:{BRAND_CHARCOAL};">
-            Air-Gapped · Zero Row Loss · Deterministic · Offline
+        <div style="font-size:11px; color:#8B8BA7; margin-top:2px;">
+            Training Analytics & Manpower Intelligence
         </div>
     </div>
 </div>
@@ -510,8 +509,8 @@ if st.session_state.get("pipeline_complete"):
     active_filters = {k: v for k, v in st.session_state["global_filters"].items() if v}
     filter_label = "filters applied" if active_filters else "no filters active — showing all data"
     st.markdown(
-        f"<div style='padding:8px 14px; background:var(--muted); border-radius:6px; "
-        f"display:inline-block; font-size:0.85rem; color:var(--muted-foreground);'>"
+        f"<div style='padding:8px 14px; background:#F7F7F9; border: 1px solid #E8E8EC; border-radius:6px; "
+        f"display:inline-block; font-size:11px; color:#6B6B8D;'>"
         f"Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows &nbsp;·&nbsp; {filter_label}</div>",
         unsafe_allow_html=True,
     )
@@ -521,8 +520,8 @@ if st.session_state.get("pipeline_complete"):
     raw_rost = st.session_state.get("raw_roster_count", 0)
     total_raw = raw_train + raw_rost
     st.markdown(
-        f"<div style='padding:12px 16px; background:{BRAND_LIGHT_GREY}; border-radius:8px; "
-        f"font-size:0.9rem; color:{BRAND_CHARCOAL}; margin-bottom:15px; border-left: 4px solid {BRAND_RED};'>"
+        f"<div style='padding:12px 16px; background:#F7F7F9; border: 1px solid #E8E8EC; border-radius:8px; "
+        f"font-size:11px; color:{BRAND_CHARCOAL}; margin-bottom:15px; border-left: 3px solid {BRAND_CHARCOAL};'>"
         f"<b>Data Pipeline Summary:</b> Ingested <b>{total_raw:,}</b> raw rows "
         f"({raw_train:,} training + {raw_rost:,} roster) &rarr; "
         f"Removed <b>{len(duplicate_df):,}</b> exact duplicates &rarr; "
@@ -577,20 +576,20 @@ else:
     <div style="text-align:center; padding:80px 20px;">
         <div style="background:{BRAND_RED}; color:white; font-size:4rem; font-weight:900;
                     width:100px; height:100px; display:flex; align-items:center; justify-content:center;
-                    border-radius:16px; margin:auto;">M</div>
-        <h2 style="color:{BRAND_DARK_CORE} !important; margin-top:20px;">
-            Upload Files to Begin
+                    border-radius:16px; margin:auto; box-shadow: 0 4px 12px rgba(210,35,42,0.4);">M</div>
+        <h2 style="color:{BRAND_CHARCOAL} !important; margin-top:20px; font-weight: 700;">
+            Enterprise Dashboard
         </h2>
-        <p style="color:{BRAND_CHARCOAL} !important; font-size:1.1rem; max-width:600px; margin:auto;">
+        <p style="color:#8B8BA7 !important; font-size:13px; max-width:600px; margin:auto;">
             Upload your Manpower Roster and Training Data files using the sidebar.
             Assign file types and click <b>Run Pipeline</b> to process.
         </p>
-        <div style="margin-top:30px; padding:20px; background:{BRAND_LIGHT_GREY};
-                    border-radius:10px; display:inline-block;">
-            <div style="font-size:0.9rem; color:{BRAND_CHARCOAL} !important;">
-                <b>Supported:</b> .xlsx, .csv · <b>Max files:</b> 4 ·
+        <div style="margin-top:30px; padding:16px; background:#F7F7F9; border: 1px solid #E8E8EC;
+                    border-radius:8px; display:inline-block;">
+            <div style="font-size:11px; color:#6B6B8D !important;">
+                <b>Supported:</b> .xlsx, .csv &nbsp;·&nbsp; <b>Max files:</b> 4 &nbsp;·&nbsp;
                 <b>Max size:</b> 60MB per file<br>
-                <b>100% Offline</b> · <b>Zero Row Loss</b> · <b>No AI/LLMs</b>
+                <b>100% Offline</b> &nbsp;·&nbsp; <b>Zero Row Loss</b> &nbsp;·&nbsp; <b>Deterministic</b>
             </div>
         </div>
     </div>
