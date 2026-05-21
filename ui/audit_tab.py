@@ -15,7 +15,7 @@ from utils.formatting_utils import style_section_header, COLUMN_CONFIGS
 def render_audit(unified_df, duplicate_df, unresolved_df):
     """Render the Audit & Exceptions tab."""
     # ── Mapping Confidence Distribution ─────────────────────────────────────
-    st.markdown(style_section_header("Mapping Confidence Distribution", ""), unsafe_allow_html=True)
+    st.markdown(style_section_header("Mapping Confidence Distribution", "", first_section=True), unsafe_allow_html=True)
 
     if unified_df is not None and not unified_df.empty and "Match_Confidence" in unified_df.columns:
         conf_counts = unified_df["Match_Confidence"].value_counts().reindex(CONFIDENCE_ORDER, fill_value=0).reset_index()

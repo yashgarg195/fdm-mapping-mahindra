@@ -17,7 +17,7 @@ def render_backlog(backlog_df, nomination_df, filters):
         return
 
     # ── Eligibility Timeframe Filter ────────────────────────────────────────
-    st.markdown(style_section_header("Pending & Nominations", "Refresher backlog and training nominations by eligibility timeframe"), unsafe_allow_html=True)
+    st.markdown(style_section_header("Pending & Nominations", "Refresher backlog and training nominations by eligibility timeframe", first_section=True), unsafe_allow_html=True)
     
     st.markdown("<div style='margin-bottom:8px; font-size:11px; color:#8B8BA7; font-weight:700; text-transform:uppercase;'>Eligibility Timeframe</div>", unsafe_allow_html=True)
     timeframe = st.radio(

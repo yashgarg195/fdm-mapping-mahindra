@@ -98,7 +98,7 @@ st.markdown(f"""
         color: var(--foreground);
     }}
     .block-container {{
-        padding-top: 3.7rem !important;
+        padding-top: 0rem !important;
         padding-bottom: 2.5rem !important;
     }}
     p, li, label, .stMarkdown, .stText {{

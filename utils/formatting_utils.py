@@ -103,9 +103,12 @@ margin-top: 6px; line-height: 1.15;">
 </div>"""
 
 
-def style_section_header(title, subtitle=""):
+def style_section_header(title, subtitle="", first_section=False):
+    margin_top = "0px" if first_section else "28px"
+    padding_top = "0px" if first_section else "18px"
+    border_top = "none" if first_section else "1px solid #E8E8EC"
     return (
-        f'<div style="margin: 28px 0 18px; padding-top: 18px; border-top: 1px solid #E8E8EC;">'
+        f'<div style="margin: {margin_top} 0 18px; padding-top: {padding_top}; border-top: {border_top};">'
         f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">'
         f'<div style="width: 4px; height: 22px; background: #D2232A; border-radius: 2px; flex-shrink: 0;"></div>'
         f'<span style="font-size: 20px; font-weight: 800; color: var(--foreground); line-height: 1.2;">{title}</span>'

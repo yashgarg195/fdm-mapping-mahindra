@@ -36,15 +36,15 @@ _ZONE_CHART_LAYOUT = _CHART_LAYOUT.copy()
 _ZONE_CHART_LAYOUT["margin"] = dict(t=88, b=20, l=20, r=20)
 
 
-def _section(title, subtitle=""):
-    st.markdown(style_section_header(title, subtitle), unsafe_allow_html=True)
+def _section(title, subtitle="", first_section=False):
+    st.markdown(style_section_header(title, subtitle, first_section), unsafe_allow_html=True)
 
 
 def render_overview(unified_df, kpis, filters):
     """Render the Overview tab with KPI cards and All-India graphical dashboard."""
 
     # ── Section A: KPI Summary Cards ─────────────────────────────────────────
-    _section("National KPI Summary", "National KPIs · Training coverage · Zone and state summary")
+    _section("National KPI Summary", "National KPIs · Training coverage · Zone and state summary", first_section=True)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
