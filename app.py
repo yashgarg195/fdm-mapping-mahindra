@@ -901,24 +901,7 @@ if st.session_state.get("pipeline_complete"):
     raw_train = st.session_state.get("raw_training_count", 0)
     raw_rost = st.session_state.get("raw_roster_count", 0)
     total_raw = raw_train + raw_rost
-    st.markdown(
-        f"""
-        <div class='dashboard-intro'>
-            <div class='dashboard-intro-summary'>
-                <span style='color:#6B6B8D;'>
-                    Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows
-                    &nbsp;·&nbsp; {filter_label}
-                </span>
-                <span style='color:#C9CCD8;'>&nbsp;|&nbsp;</span>
-                <b>Data Pipeline Summary:</b> Ingested <b>{total_raw:,}</b> raw rows
-                ({raw_train:,} training + {raw_rost:,} roster) &rarr;
-                Removed <b>{len(duplicate_df):,}</b> exact duplicates &rarr;
-                Resolved into <b>{len(unified_df):,}</b> unique master records.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
 
     # ── Top Navigation Routing ──────────────────────────────────────────────
     page = st.session_state.get("current_tab", "Overview")
