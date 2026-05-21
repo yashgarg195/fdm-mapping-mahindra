@@ -300,8 +300,8 @@ st.markdown(f"""
             color: var(--foreground) !important;
         }}
         header[data-testid="stHeader"] {{
-            background-color: var(--background);
-            border-bottom-color: var(--muted);
+            background-color: transparent !important;
+            border-bottom: none !important;
         }}
         section[data-testid="stSidebar"] {{
             background-color: var(--background) !important;
@@ -331,8 +331,8 @@ st.markdown(f"""
         color: var(--foreground) !important;
     }}
     header[data-testid="stHeader"] {{
-        background-color: var(--background);
-        border-bottom: 1px solid var(--muted);
+        background-color: transparent !important;
+        border-bottom: none !important;
     }}
     /* ── Sidebar ───────────────────────────────────────── */
     section[data-testid="stSidebar"] {{
