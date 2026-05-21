@@ -2,7 +2,7 @@
 Sidebar Module — File uploaders and type assignment.
 """
 import streamlit as st
-from ui.theme import NEUTRAL
+from config.constants import BRAND_CHARCOAL
 
 
 def render_sidebar():
@@ -16,21 +16,14 @@ def render_sidebar():
     }
 
     st.sidebar.markdown(
-        f"<div style='padding:14px 0 10px 0;'>"
-        f"<div style='font-size:0.78rem; color:{NEUTRAL['muted']}; "
-        f"font-weight:750; text-transform:uppercase;'>Local Analytics Portal</div>"
-        f"<div style='color:{NEUTRAL['ink']}; font-size:1.05rem; "
-        f"font-weight:800; line-height:1.25; margin-top:4px;'>"
-        "Training Analytics & Manpower Intelligence</div>"
-        f"<div style='color:{NEUTRAL['muted']}; font-size:0.78rem; margin-top:6px;'>"
-        "Offline processing · Excel upload · Local exports</div>"
-        f"</div>",
+        f"<h2 style='color:{BRAND_CHARCOAL}; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:0;'>"
+        "MAHINDRA TRACTORS</h2>",
         unsafe_allow_html=True,
     )
     st.sidebar.markdown("---")
 
     # ── File Upload Section ─────────────────────────────────────────────────
-    st.sidebar.markdown("### Upload Data")
+    st.sidebar.markdown("### Upload Data Files")
     file_types = ["Manpower Roster", "Training Data", "Additional Training Data", "Other"]
 
     for i in range(1, 5):
@@ -55,7 +48,7 @@ def render_sidebar():
     # ── Run Pipeline Button ─────────────────────────────────────────────────
     if result["uploaded_files"]:
         result["run_pipeline"] = st.sidebar.button(
-            "Process Files",
+            "Run Pipeline",
             type="primary",
         )
 
@@ -89,11 +82,11 @@ def render_sidebar():
 
 **Confidence Tiers:**
 
-- **HIGH** — Exact ID match with matching name
-- **MEDIUM** — Strong match with minor name variation
-- **LOW** — Weak match that requires supervisor review
-- **POSSIBLE MATCH** — Similar identity signals; review before confirmation
-- **UNRESOLVED** — Could not be matched; excluded from KPIs
+- 🟢 **HIGH** — Exact ID match with matching name
+- 🟡 **MEDIUM** — Strong match with minor name variation
+- 🟠 **LOW** — Weak match — requires supervisor review
+- 🟣 **POSSIBLE** — Similar name at same dealership (Possible Match)
+- ⬛ **UNRESOLVED** — Could not be matched — excluded from KPIs
 
 ---
 
