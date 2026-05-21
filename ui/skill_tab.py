@@ -26,22 +26,44 @@ def _fmt_company(val):
 
 def _render_scale_legend():
     """Render the 1-5 company scale visual legend as an HTML bar."""
-    cells = ""
-    for score in range(1, 6):
-        label, desc = COMPANY_SCALE_LABELS[score]
-        color = COMPANY_SCALE_COLORS[score]
-        cells += f"""
-        <div style="flex:1; text-align:center; padding:6px 4px; background:{color};
-                    color:#231F20; font-size:0.72rem; line-height:1.3;
-                    border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">{score}</div>
-            <div style="font-weight:700;">{label}</div>
-            <div style="font-size:0.65rem; opacity:0.85;">{desc}</div>
-        </div>"""
-    return f"""
+    return """
     <div style="display:flex; border-radius:8px; overflow:hidden;
                 box-shadow:0 2px 8px rgba(0,0,0,0.08); margin:12px 0 18px 0;">
-        {cells}
+        <div style="flex:1; text-align:center; padding:6px 4px; background:#FF6B6B;
+                    color:#231F20; font-size:0.72rem; line-height:1.3;
+                    border-right:2px solid white;">
+            <div style="font-weight:800; font-size:1.1rem;">1</div>
+            <div style="font-weight:700;">Beginner</div>
+            <div style="font-size:0.65rem; opacity:0.85;">No formal training or untested — needs onboarding</div>
+        </div>
+        <div style="flex:1; text-align:center; padding:6px 4px; background:#FFA94D;
+                    color:#231F20; font-size:0.72rem; line-height:1.3;
+                    border-right:2px solid white;">
+            <div style="font-weight:800; font-size:1.1rem;">2</div>
+            <div style="font-weight:700;">Basic</div>
+            <div style="font-size:0.65rem; opacity:0.85;">Completed L1 foundations — can assist under supervision</div>
+        </div>
+        <div style="flex:1; text-align:center; padding:6px 4px; background:#FFD43B;
+                    color:#231F20; font-size:0.72rem; line-height:1.3;
+                    border-right:2px solid white;">
+            <div style="font-weight:800; font-size:1.1rem;">3</div>
+            <div style="font-weight:700;">Intermediate</div>
+            <div style="font-size:0.65rem; opacity:0.85;">Completed L2 — can handle routine tasks independently</div>
+        </div>
+        <div style="flex:1; text-align:center; padding:6px 4px; background:#69DB7C;
+                    color:#231F20; font-size:0.72rem; line-height:1.3;
+                    border-right:2px solid white;">
+            <div style="font-weight:800; font-size:1.1rem;">4</div>
+            <div style="font-weight:700;">Advanced</div>
+            <div style="font-size:0.65rem; opacity:0.85;">Completed L3 — can troubleshoot and mentor juniors</div>
+        </div>
+        <div style="flex:1; text-align:center; padding:6px 4px; background:#228BE6;
+                    color:#231F20; font-size:0.72rem; line-height:1.3;
+                    border-right:2px solid white;">
+            <div style="font-weight:800; font-size:1.1rem;">5</div>
+            <div style="font-weight:700;">Expert</div>
+            <div style="font-size:0.65rem; opacity:0.85;">Completed L4 — certified specialist, can lead audits</div>
+        </div>
     </div>"""
 
 
