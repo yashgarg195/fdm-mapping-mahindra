@@ -968,16 +968,16 @@ else:
             <div style="background:{BRAND_RED}; color:white; font-size:4rem; font-weight:900;
                         width:100px; height:100px; display:flex; align-items:center; justify-content:center;
                         border-radius:16px; margin:auto; box-shadow: 0 4px 12px rgba(210,35,42,0.4);">M</div>
-            <h2 style="color:{BRAND_CHARCOAL} !important; margin-top:20px; font-weight: 700;">
+            <h2 style="color:var(--foreground) !important; margin-top:20px; font-weight: 700;">
                 Enterprise Dashboard
             </h2>
-            <p style="color:#8B8BA7 !important; font-size:13px; max-width:600px; margin:auto;">
+            <p style="color:var(--muted-foreground) !important; font-size:13px; max-width:600px; margin:auto;">
                 Upload your Manpower Roster and Training Data files using the sidebar.
-                Assign file types and click <b>Run Pipeline</b> to process.
+                Assign file types and click <b>Analyse</b> to process.
             </p>
-            <div style="margin-top:30px; padding:16px; background:#F7F7F9; border: 1px solid #E8E8EC;
+            <div style="margin-top:30px; padding:16px; background:var(--muted); border: 1px solid var(--border);
                         border-radius:8px; display:inline-block;">
-                <div style="font-size:11px; color:#6B6B8D !important;">
+                <div style="font-size:11px; color:var(--muted-foreground) !important;">
                     <b>Supported:</b> .xlsx, .csv &nbsp;·&nbsp; <b>Max files:</b> 4 &nbsp;·&nbsp;
                     <b>Max size:</b> 60MB per file<br>
                     <b>100% Offline</b> &nbsp;·&nbsp; <b>Zero Row Loss</b> &nbsp;·&nbsp; <b>Deterministic</b>
@@ -985,6 +985,43 @@ else:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+if "has_expanded_on_load" not in st.session_state:
+    st.session_state["has_expanded_on_load"] = True
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+        const expandSidebar = () => {
+            try {
+                const doc = window.parent.document;
+                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+                if (sidebar && sidebar.getAttribute('aria-expanded') !== 'false') {
+                    return true; // Already expanded
+                }
+                
+                const expandBtn = doc.querySelector('[data-testid="stSidebarCollapsedControl"], [data-testid="stExpandSidebarButton"], button[aria-label="Expand sidebar"]');
+                
+                if (expandBtn) {
+                    expandBtn.click();
+                    expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window.parent }));
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        };
+        
+        let retries = 0;
+        const interval = setInterval(() => {
+            if (expandSidebar() || retries > 50) {
+                clearInterval(interval);
+            }
+            retries++;
+        }, 100);
+        </script>
+        """,
+        height=1, width=1
+    )
 
 if st.session_state.pop("collapse_sidebar_now", False):
     import streamlit.components.v1 as components
