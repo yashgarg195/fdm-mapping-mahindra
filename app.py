@@ -572,29 +572,34 @@ if "topnav_tabs" not in st.session_state and _query_tab in NAV_KEYS:
 if "topnav_tabs" not in st.session_state or st.session_state["topnav_tabs"] not in NAV_KEYS:
     st.session_state["topnav_tabs"] = st.session_state["current_tab"]
 
-st.markdown(f"""
-<div class="app-topnav">
-    <div class="app-topnav-brand">
-        <div class="app-topnav-mark"></div>
-        <div>
-            <div class="app-topnav-title">MAHINDRA ENTERPRISE DASHBOARD</div>
-            <div class="app-topnav-subtitle">Training Analytics & Manpower Intelligence</div>
-        </div>
-    </div>
-    <nav class="app-topnav-items">
-    </nav>
-</div>
-""", unsafe_allow_html=True)
+is_app_loaded = "unified_df" in st.session_state and st.session_state["unified_df"] is not None
 
-_selected_tab = st.segmented_control(
-    "Dashboard sections",
-    options=NAV_KEYS,
-    default=st.session_state["current_tab"],
-    selection_mode="single",
-    key="topnav_tabs",
-    label_visibility="collapsed",
-)
-page = _selected_tab or st.session_state["current_tab"]
+if is_app_loaded or page == "Help & Guide":
+    st.markdown(f"""
+    <div class="app-topnav">
+        <div class="app-topnav-brand">
+            <div class="app-topnav-mark"></div>
+            <div>
+                <div class="app-topnav-title">MAHINDRA ENTERPRISE DASHBOARD</div>
+                <div class="app-topnav-subtitle">Training Analytics & Manpower Intelligence</div>
+            </div>
+        </div>
+        <nav class="app-topnav-items">
+        </nav>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _selected_tab = st.segmented_control(
+        "Dashboard sections",
+        options=NAV_KEYS,
+        default=st.session_state["current_tab"],
+        selection_mode="single",
+        key="topnav_tabs",
+        label_visibility="collapsed",
+    )
+    page = _selected_tab or st.session_state["current_tab"]
+else:
+    page = st.session_state["current_tab"]
 if page != st.session_state["current_tab"]:
     st.session_state["current_tab"] = page
 if st.query_params.get("tab") != page:
@@ -617,15 +622,15 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
         html = f"""
         <div style="width: 100%; padding: 30px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 40px; margin-bottom: 20px;">
             <div style="width: 80%; max-width: 600px; position: relative;">
-                <div style="position: absolute; top: -35px; left: calc({pct}% - 20px); transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1); z-index: 3;">
+                <div style="position: absolute; top: -35px; left: calc({pct}% - 20px); transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 3;">
                     {tractor_svg}
                 </div>
                 <div style="width: 100%; height: 16px; background-color: #8D6E63; border-radius: 8px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); border-bottom: 2px solid #5D4037; position: relative; z-index: 1;">
                     <!-- Grass clumps along the dirt track -->
                     <div style="position: absolute; width: 100%; height: 100%; background-image: radial-gradient(#81C784 1.5px, transparent 1.5px); background-size: 12px 12px; opacity: 0.4;"></div>
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #D2232A, #FF4B53); border-radius: 8px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 2;"></div>
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #D2232A, #FF4B53); border-radius: 8px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 2;"></div>
                 </div>
-                <div style="margin-top: 16px; text-align: center; color: #1A1A2E; font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;">
+                <div style="margin-top: 16px; text-align: center; color: var(--foreground); font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;">
                     {msg}
                 </div>
             </div>
@@ -634,7 +639,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
         progress_container.markdown(html, unsafe_allow_html=True)
         if pct > 0 and pct < 100:
             import time
-            time.sleep(0.8)
+            time.sleep(0.4)
 
     update_tractor(0, "Starting pipeline...")
 
