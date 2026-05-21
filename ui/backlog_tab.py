@@ -5,8 +5,8 @@ import io
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from config.constants import BRAND_RED, BRAND_CHARCOAL
-from utils.formatting_utils import style_kpi_card, format_count
+from config.constants import BRAND_CHARCOAL
+from utils.formatting_utils import style_kpi_card, format_count, style_section_header, highlight_pending
 from analytics.backlog_analytics import backlog_aging_report, dealership_backlog_rank
 
 
@@ -17,13 +17,16 @@ def render_backlog(backlog_df, nomination_df, filters):
         return
 
     # ── Eligibility Timeframe Filter ────────────────────────────────────────
-    col_filter, _ = st.columns([1, 3])
-    with col_filter:
-        timeframe = st.selectbox(
-            "Eligibility Timeframe",
-            options=["All", ">= 1 month", ">= 3 months", ">= 6 months", ">= 1 year"],
-            index=0
-        )
+    st.markdown(style_section_header("Pending & Nominations", "Refresher backlog and training nominations by eligibility timeframe"), unsafe_allow_html=True)
+    
+    st.markdown("<div style='margin-bottom:8px; font-size:11px; color:#8B8BA7; font-weight:700; text-transform:uppercase;'>Eligibility Timeframe</div>", unsafe_allow_html=True)
+    timeframe = st.radio(
+        "Eligibility Timeframe",
+        options=["All", ">= 1 month", ">= 3 months", ">= 6 months", ">= 1 year"],
+        index=0,
+        horizontal=True,
+        label_visibility="collapsed"
+    )
     
     # Apply filter to backlog_df
     filtered_backlog = backlog_df.copy()
@@ -47,28 +50,31 @@ def render_backlog(backlog_df, nomination_df, filters):
     avg_age = filtered_backlog["Pending_Age_Months"].mean() if "Pending_Age_Months" in filtered_backlog.columns else 0
 
     with c1:
-        st.markdown(style_kpi_card("TOTAL BACKLOG", format_count(total_backlog), "PENDING EMPLOYEES", BRAND_RED), unsafe_allow_html=True)
+        st.markdown(style_kpi_card("TOTAL BACKLOG", format_count(total_backlog), "PENDING EMPLOYEES", "#1A1A2E"), unsafe_allow_html=True)
     with c2:
-        st.markdown(style_kpi_card("CRITICAL (12+ MO)", format_count(critical_count), "IMMEDIATE ATTENTION", "#FF8C00"), unsafe_allow_html=True)
+        st.markdown(style_kpi_card("CRITICAL (12+ MO)", format_count(critical_count), "IMMEDIATE ATTENTION", "#C62828"), unsafe_allow_html=True)
     with c3:
-        st.markdown(style_kpi_card("AVG PENDING AGE", f"{avg_age:.1f} mo", "MONTHS WAITING", BRAND_CHARCOAL), unsafe_allow_html=True)
+        st.markdown(style_kpi_card("AVG PENDING AGE", f"{avg_age:.1f} mo", "MONTHS WAITING", "#78909C"), unsafe_allow_html=True)
 
     # ── Nomination Priority Table ───────────────────────────────────────────
-    st.markdown("#### Filtered Backlog & Nomination List")
+    st.markdown(style_section_header("Filtered Backlog & Nomination List", ""), unsafe_allow_html=True)
     
     display_cols = [c for c in ["Nomination_Rank", "Star ID", "Name", "Designation",
                     "Dealer Code", "Dealer Name", "Zone", "State",
                     "Pending_Age_Months", "Training_Priority_Score", "Training_Status"]
                     if c in filtered_backlog.columns]
     
-    st.dataframe(filtered_backlog[display_cols], height=400)
+    styled_df = filtered_backlog[display_cols].style.map(
+        highlight_pending, subset=["Pending_Age_Months"]
+    )
+    st.dataframe(styled_df, height=400, use_container_width=True)
 
     # Download button for filtered backlog
     buf = io.BytesIO()
     filtered_backlog[display_cols].to_excel(buf, index=False, engine="xlsxwriter")
     buf.seek(0)
     st.download_button(
-        "Download Filtered Backlog (Excel)", buf,
+        "↓ Download Filtered Backlog (Excel)", buf,
         file_name="MAHINDRA_FILTERED_BACKLOG.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
@@ -77,30 +83,30 @@ def render_backlog(backlog_df, nomination_df, filters):
     chart1, chart2 = st.columns(2)
 
     with chart1:
-        st.markdown("#### Dealership Backlog Ranking")
+        st.markdown(style_section_header("Dealership Backlog Ranking", ""), unsafe_allow_html=True)
         dr = dealership_backlog_rank(filtered_backlog)
         if not dr.empty:
             top15 = dr.head(15)
             fig = px.bar(
                 top15, y="Dealer_Name", x="Backlog_Count", orientation="h",
-                color_discrete_sequence=[BRAND_RED],
+                color_discrete_sequence=["#1A1A2E"],
             )
-            fig.update_layout(plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20), yaxis_title="")
-            st.plotly_chart(fig, key="dealer_backlog_chart")
+            fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", margin=dict(t=20, b=20, l=20, r=20), yaxis_title="")
+            st.plotly_chart(fig, key="dealer_backlog_chart", use_container_width=True)
         else:
             st.info("No dealership backlog data.")
 
     with chart2:
-        st.markdown("#### Pending Aging Distribution")
+        st.markdown(style_section_header("Pending Aging Distribution", ""), unsafe_allow_html=True)
         aging = backlog_aging_report(filtered_backlog)
         if not aging.empty:
             fig = px.bar(
                 aging, x="Aging_Bucket", y="Count",
                 color="Aging_Bucket",
-                color_discrete_map={"0-3 months": "#90EE90", "3-6 months": "#FFD700",
-                                    "6-12 months": "#FF8C00", "12+ months": BRAND_RED},
+                color_discrete_map={"0-3 months": "#66BB6A", "3-6 months": "#FFCA28",
+                                    "6-12 months": "#F57C00", "12+ months": "#C62828"},
             )
-            fig.update_layout(plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20), showlegend=False)
-            st.plotly_chart(fig, key="aging_chart")
+            fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", margin=dict(t=20, b=20, l=20, r=20), showlegend=False)
+            st.plotly_chart(fig, key="aging_chart", use_container_width=True)
         else:
             st.info("No aging data.")
