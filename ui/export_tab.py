@@ -6,7 +6,8 @@ and the combined 9-sheet full report are available.
 import datetime
 import streamlit as st
 import pandas as pd
-from config.constants import BRAND_RED, BRAND_CHARCOAL, BRAND_DARK_CORE, BRAND_LIGHT_GREY
+from config.constants import BRAND_CHARCOAL
+from utils.formatting_utils import style_section_header
 from reports_export.excel_export import (
     generate_excel_report,
     export_skill_report,
@@ -23,7 +24,7 @@ def _download_row(label, buf, filename, description=""):
     with col_desc:
         st.markdown(
             f"<div style='padding:10px 0 2px 0;'>"
-            f"<span style='font-weight:600; color:{BRAND_DARK_CORE}; font-size:0.95rem;'>{label}</span>"
+            f"<span style='font-weight:600; color:#1A1A2E; font-size:0.95rem;'>{label}</span>"
             + (f"<br><span style='color:#717182; font-size:0.8rem;'>{description}</span>" if description else "")
             + "</div>",
             unsafe_allow_html=True,
@@ -31,7 +32,7 @@ def _download_row(label, buf, filename, description=""):
     with col_btn:
         st.markdown("<div style='padding-top:8px;'>", unsafe_allow_html=True)
         st.download_button(
-            "Download",
+            "↓ Download",
             data=buf,
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -45,15 +46,7 @@ def _download_row(label, buf, filename, description=""):
 
 
 def _section_header(title, subtitle=""):
-    st.markdown(
-        f"<div style='margin:28px 0 14px 0; padding:14px 18px; "
-        f"background:{BRAND_LIGHT_GREY}; border-radius:8px; "
-        f"border-left:4px solid {BRAND_RED};'>"
-        f"<div style='font-weight:700; font-size:1rem; color:{BRAND_DARK_CORE};'>{title}</div>"
-        + (f"<div style='font-size:0.82rem; color:#717182; margin-top:3px;'>{subtitle}</div>" if subtitle else "")
-        + "</div>",
-        unsafe_allow_html=True,
-    )
+    st.markdown(style_section_header(title, subtitle), unsafe_allow_html=True)
 
 
 def render_export_tab(unified_df, backlog_df, nomination_df, duplicate_df, audit_log, filters, kpis, stats):
@@ -65,18 +58,18 @@ def render_export_tab(unified_df, backlog_df, nomination_df, duplicate_df, audit
 
     # ── Pipeline metadata banner ──────────────────────────────────────────────
     st.markdown(
-        f"<div style='background:{BRAND_LIGHT_GREY}; border-radius:8px; padding:12px 18px; "
+        f"<div style='background:#F7F7F9; border-radius:8px; padding:12px 18px; border: 1px solid #E8E8EC; "
         f"display:flex; gap:32px; flex-wrap:wrap; margin-bottom:20px;'>"
-        f"<div><span style='color:#717182; font-size:0.78rem;'>REPORT GENERATED</span><br>"
+        f"<div><span style='color:#6B6B8D; font-size:0.78rem;'>REPORT GENERATED</span><br>"
         f"<span style='font-weight:700; font-size:0.92rem;'>{now}</span></div>"
-        f"<div><span style='color:#717182; font-size:0.78rem;'>TOTAL RECORDS</span><br>"
+        f"<div><span style='color:#6B6B8D; font-size:0.78rem;'>TOTAL RECORDS</span><br>"
         f"<span style='font-weight:700; font-size:0.92rem;'>{row_count:,}</span></div>"
-        f"<div><span style='color:#717182; font-size:0.78rem;'>FILTERS APPLIED</span><br>"
-        f"<span style='font-weight:700; font-size:0.92rem; color:{BRAND_RED if active_filters else BRAND_CHARCOAL};'>"
+        f"<div><span style='color:#6B6B8D; font-size:0.78rem;'>FILTERS APPLIED</span><br>"
+        f"<span style='font-weight:700; font-size:0.92rem; color:{BRAND_CHARCOAL};'>"
         f"{'Yes — ' + ', '.join(active_filters.keys()) if active_filters else 'None (all data)'}</span></div>"
-        f"<div><span style='color:#717182; font-size:0.78rem;'>UNIQUE MANPOWER</span><br>"
+        f"<div><span style='color:#6B6B8D; font-size:0.78rem;'>UNIQUE MANPOWER</span><br>"
         f"<span style='font-weight:700; font-size:0.92rem;'>{kpis.get('total_manpower', 0):,}</span></div>"
-        f"<div><span style='color:#717182; font-size:0.78rem;'>MATCHED RECORDS</span><br>"
+        f"<div><span style='color:#6B6B8D; font-size:0.78rem;'>MATCHED RECORDS</span><br>"
         f"<span style='font-weight:700; font-size:0.92rem;'>{stats.get('matched_count', 0):,}</span></div>"
         f"</div>",
         unsafe_allow_html=True,
