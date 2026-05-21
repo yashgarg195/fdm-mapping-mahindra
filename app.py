@@ -46,10 +46,11 @@ from utils.logging_utils import (
 # ═══════════════════════════════════════════════════════════════════════════
 # PAGE CONFIG
 # ═══════════════════════════════════════════════════════════════════════════
+sidebar_state = "collapsed" if st.session_state.get("pipeline_complete") else "expanded"
 st.set_page_config(
     page_title="Mahindra Training Analytics & Manpower Intelligence",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state=sidebar_state,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -400,8 +401,6 @@ if "filter_reset_counter" not in st.session_state:
     st.session_state["filter_reset_counter"] = 0
 if "current_tab" not in st.session_state:
     st.session_state["current_tab"] = "Overview"
-if "collapse_upload_pane" not in st.session_state:
-    st.session_state["collapse_upload_pane"] = False
 
 NAV_ITEMS = [
     ("Overview", "Overview"),
@@ -416,11 +415,6 @@ _query_tab = st.query_params.get("tab")
 if _query_tab in [key for key, _ in NAV_ITEMS]:
     st.session_state["current_tab"] = _query_tab
 
-_nav_html = ""
-for _tab_key, _tab_label in NAV_ITEMS:
-    _active = " active" if st.session_state["current_tab"] == _tab_key else ""
-    _nav_html += f'<div class="app-topnav-item{_active}" data-tab="{_tab_key}">{_tab_label}</div>'
-
 st.markdown(f"""
 <div class="app-topnav">
     <div class="app-topnav-brand">
@@ -431,7 +425,6 @@ st.markdown(f"""
         </div>
     </div>
     <nav class="app-topnav-items">
-        {_nav_html}
     </nav>
 </div>
 """, unsafe_allow_html=True)
@@ -448,17 +441,7 @@ if _selected_tab and _selected_tab != st.session_state["current_tab"]:
     st.query_params["tab"] = _selected_tab
     st.rerun()
 
-if st.session_state.get("collapse_upload_pane"):
-    st.markdown("""
-    <style>
-        section[data-testid="stSidebar"] {
-            display: none !important;
-        }
-        [data-testid="stSidebarCollapsedControl"] {
-            display: block !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
+# Native sidebar state used instead of custom CSS injection
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -469,17 +452,6 @@ sidebar_result = render_sidebar()
 # PIPELINE EXECUTION — with real-time progress bar
 # ═══════════════════════════════════════════════════════════════════════════
 if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
-    st.session_state["collapse_upload_pane"] = True
-    st.markdown("""
-    <style>
-        section[data-testid="stSidebar"] {
-            display: none !important;
-        }
-        [data-testid="stSidebarCollapsedControl"] {
-            display: block !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
     progress_bar = st.progress(0, text="Starting pipeline...")
     status_text = st.empty()
 
@@ -625,13 +597,15 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             progress_bar.progress(100, text="Pipeline complete!")
             status_text.empty()
 
-        st.success(
+        st.session_state["pipeline_success_message"] = (
             f"Pipeline complete! "
             f"{len(unified_df):,} rows processed | "
             f"{stats.get('matched_count', 0):,} matched | "
             f"{stats.get('unresolved_count', 0):,} unresolved | "
             f"0 rows lost"
         )
+        time.sleep(0.5)
+        st.rerun()
 
     except Exception as e:
         progress_bar.empty()
@@ -643,6 +617,9 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
 # DASHBOARD TABS (only shown after pipeline runs)
 # ═══════════════════════════════════════════════════════════════════════════
 if st.session_state.get("pipeline_complete"):
+    if "pipeline_success_message" in st.session_state and st.session_state["pipeline_success_message"]:
+        st.success(st.session_state["pipeline_success_message"])
+        del st.session_state["pipeline_success_message"]
     unified_df = st.session_state["unified_df"]
     duplicate_df = st.session_state["duplicate_df"]
     backlog_df = st.session_state["backlog_df"]

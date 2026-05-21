@@ -9,7 +9,7 @@ from config.constants import (
     BRAND_CHARCOAL, SKILL_SCORE_MAP,
     COMPANY_SCALE_MAP, COMPANY_SCALE_LABELS, COMPANY_SCALE_COLORS,
 )
-from utils.formatting_utils import style_kpi_card, style_section_header
+from utils.formatting_utils import style_kpi_card, style_section_header, COLUMN_CONFIGS
 from analytics.skill_analytics import regression_cases
 
 
@@ -107,7 +107,7 @@ def render_skill(unified_df, filters):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="skill_reg_export",
             )
-        st.dataframe(reg, height=300, use_container_width=True)
+        st.dataframe(reg, height=300, use_container_width=True, column_config=COLUMN_CONFIGS)
     else:
         st.success("No skill regressions detected.")
 
@@ -133,3 +133,4 @@ def render_skill(unified_df, filters):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="skill_ni_export",
             )
+        st.dataframe(non_improving, height=300, use_container_width=True, column_config=COLUMN_CONFIGS)

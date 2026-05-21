@@ -5,7 +5,7 @@ import io
 import streamlit as st
 import plotly.express as px
 from config.constants import BRAND_CHARCOAL
-from utils.formatting_utils import style_kpi_card, format_count, style_section_header
+from utils.formatting_utils import style_kpi_card, format_count, style_section_header, COLUMN_CONFIGS
 from analytics.manpower import state_manpower_table, zone_manpower_table, unique_manpower_count
 
 
@@ -50,7 +50,7 @@ def render_manpower(unified_df, filters):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="manpower_state_export",
             )
-        st.dataframe(state_sorted, height=400, use_container_width=True)
+        st.dataframe(state_sorted, height=400, use_container_width=True, column_config=COLUMN_CONFIGS)
     else:
         st.info("No state-level data available.")
 
@@ -79,7 +79,7 @@ def render_manpower(unified_df, filters):
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="manpower_zone_export",
                 )
-            st.dataframe(zone_df, use_container_width=True)
+            st.dataframe(zone_df, use_container_width=True, column_config=COLUMN_CONFIGS)
     else:
         st.info("No zone-level data available.")
 

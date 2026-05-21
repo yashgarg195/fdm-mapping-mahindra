@@ -9,7 +9,7 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from config.constants import BRAND_CHARCOAL, CONFIDENCE_ORDER, CONFIDENCE_COLORS
-from utils.formatting_utils import style_section_header
+from utils.formatting_utils import style_section_header, COLUMN_CONFIGS
 
 
 def render_audit(unified_df, duplicate_df, unresolved_df):
@@ -44,7 +44,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="audit_conf_export",
                 )
-            st.dataframe(conf_counts, height=200)
+            st.dataframe(conf_counts, height=200, column_config=COLUMN_CONFIGS)
 
         # Training Status Breakdown
         if "Training_Status" in unified_df.columns:
@@ -63,7 +63,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="audit_ts_export",
                 )
-            st.dataframe(status_counts, height=200)
+            st.dataframe(status_counts, height=200, column_config=COLUMN_CONFIGS)
     else:
         st.info("No confidence data available.")
 
@@ -86,7 +86,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="audit_dup_export",
             )
-        st.dataframe(dup_display, height=300, use_container_width=True)
+        st.dataframe(dup_display, height=300, use_container_width=True, column_config=COLUMN_CONFIGS)
     else:
         st.success("No exact duplicate records detected.")
 
@@ -173,7 +173,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="audit_suspect_export",
                 )
-            st.dataframe(suspects_display, height=350, use_container_width=True)
+            st.dataframe(suspects_display, height=350, use_container_width=True, column_config=COLUMN_CONFIGS)
 
         else:
             st.success("No possible matches detected.")
@@ -200,7 +200,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="audit_unresolved_export",
             )
-        st.dataframe(ur_display, height=300, use_container_width=True)
+        st.dataframe(ur_display, height=300, use_container_width=True, column_config=COLUMN_CONFIGS)
     else:
         st.success("No unresolved records. All identities mapped.")
 
@@ -360,7 +360,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                     key="dq_export_btn",
                 )
 
-            st.dataframe(filtered_issues, height=350, use_container_width=True)
+            st.dataframe(filtered_issues, height=350, use_container_width=True, column_config=COLUMN_CONFIGS)
         else:
             st.success("No data quality issues detected.")
     else:

@@ -6,7 +6,7 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from config.constants import BRAND_CHARCOAL
-from utils.formatting_utils import style_kpi_card, format_count, style_section_header, highlight_pending
+from utils.formatting_utils import style_kpi_card, format_count, style_section_header, highlight_pending, COLUMN_CONFIGS
 from analytics.backlog_analytics import backlog_aging_report, dealership_backlog_rank
 
 
@@ -67,7 +67,7 @@ def render_backlog(backlog_df, nomination_df, filters):
     styled_df = filtered_backlog[display_cols].style.map(
         highlight_pending, subset=["Pending_Age_Months"]
     )
-    st.dataframe(styled_df, height=400, use_container_width=True)
+    st.dataframe(styled_df, height=400, use_container_width=True, column_config=COLUMN_CONFIGS)
 
     # Download button for filtered backlog
     buf = io.BytesIO()

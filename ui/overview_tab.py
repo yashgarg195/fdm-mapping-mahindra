@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from config.constants import BRAND_CHARCOAL
-from utils.formatting_utils import style_kpi_card, format_count, format_pct, style_section_header
+from utils.formatting_utils import style_kpi_card, format_count, format_pct, style_section_header, COLUMN_CONFIGS
 from analytics.overview import (
     national_summary, fy_trend, l_level_breakdown, zone_breakdown, state_coverage_top,
 )
@@ -259,7 +259,7 @@ def render_overview(unified_df, kpis, filters):
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="overview_zone_export",
                 )
-            st.dataframe(zone_df, use_container_width=True)
+            st.dataframe(zone_df, use_container_width=True, column_config=COLUMN_CONFIGS)
     else:
         st.info("No zone-level data available (Zone column missing in dataset).")
 
@@ -298,8 +298,9 @@ def render_overview(unified_df, kpis, filters):
                     key="overview_state_export",
                 )
             st.dataframe(
-                state_df.rename(columns={"Coverage_Pct": "Coverage %"}),
+                state_df,
                 use_container_width=True, height=320,
+                column_config=COLUMN_CONFIGS,
             )
     else:
         st.info("No state-level data available.")
