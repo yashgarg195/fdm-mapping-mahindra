@@ -46,11 +46,10 @@ from utils.logging_utils import (
 # ═══════════════════════════════════════════════════════════════════════════
 # PAGE CONFIG
 # ═══════════════════════════════════════════════════════════════════════════
-sidebar_state = "collapsed" if st.session_state.get("pipeline_complete") else "expanded"
 st.set_page_config(
     page_title="Mahindra Training Analytics & Manpower Intelligence",
     layout="wide",
-    initial_sidebar_state=sidebar_state,
+    initial_sidebar_state="expanded",
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -191,7 +190,7 @@ st.markdown(f"""
         height: 64px !important;
         flex: 1 0 max-content !important;
         border-radius: 0 !important;
-        border: 0 !important;
+        border: none !important;
         border-right: 1px solid #E8E8EC !important;
         background: transparent !important;
         color: var(--muted-foreground) !important;
@@ -208,6 +207,7 @@ st.markdown(f"""
         position: relative;
         background: var(--background) !important;
         color: var(--brand-charcoal) !important;
+        border-right: 1px solid #E8E8EC !important;
     }}
     .st-key-topnav_tabs [role="radiogroup"] > button[kind="segmented_controlActive"]::after {{
         content: "";
@@ -380,6 +380,108 @@ st.markdown(f"""
         border: none !important;
         box-shadow: none !important;
         opacity: 1 !important;
+    }}
+    /* ── Floating Filters Button ──────────────────────── */
+    .filter-fab {{
+        position: fixed;
+        top: 78px;
+        right: 24px;
+        z-index: 999998;
+        background: var(--brand-charcoal);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: 'Inter', sans-serif;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.15s, box-shadow 0.15s;
+    }}
+    .filter-fab:hover {{
+        background: var(--brand-red);
+        box-shadow: 0 6px 20px rgba(210,35,42,0.35);
+    }}
+    .filter-fab svg {{
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+    }}
+    /* ── Filter Panel Overlay ─────────────────────────── */
+    .filter-overlay {{
+        position: fixed;
+        inset: 0;
+        z-index: 999997;
+        background: rgba(0,0,0,0.25);
+        backdrop-filter: blur(2px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }}
+    .filter-overlay.active {{
+        opacity: 1;
+        pointer-events: auto;
+    }}
+    .filter-panel {{
+        position: fixed;
+        top: 0;
+        right: -55%;
+        width: 50%;
+        height: 100vh;
+        z-index: 999998;
+        background: var(--background);
+        border-left: 1px solid var(--muted);
+        box-shadow: -8px 0 30px rgba(0,0,0,0.12);
+        padding: 80px 32px 32px;
+        overflow-y: auto;
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }}
+    .filter-panel.active {{
+        right: 0;
+    }}
+    .filter-panel-header {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }}
+    .filter-panel-title {{
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--foreground);
+        letter-spacing: 0.02em;
+    }}
+    .filter-panel-close {{
+        background: var(--muted);
+        border: none;
+        border-radius: 6px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--foreground);
+        font-size: 18px;
+        font-weight: 700;
+        transition: background 0.15s;
+    }}
+    .filter-panel-close:hover {{
+        background: var(--accent);
+    }}
+    /* Hide the popover trigger button — the floating FAB triggers it via JS */
+    .st-key-filter_popover > div > .stPopover > button {{
+        display: none !important;
+    }}
+    /* Make the popover panel wider (half screen) */
+    .st-key-filter_popover div[data-testid="stPopover"] > div {{
+        min-width: 50vw !important;
+        max-width: 50vw !important;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -625,85 +727,96 @@ if st.session_state.get("pipeline_complete"):
     backlog_df = st.session_state["backlog_df"]
     nomination_df = st.session_state["nomination_df"]
 
-    # ── Main Area Filters ───────────────────────────────────────────────────
-    st.markdown("### Global Filters")
+    # ── Floating Filter Button + Popover ───────────────────────────────────────
+    active_filters = {k: v for k, v in st.session_state["global_filters"].items() if v}
+    _filter_count = sum(len(v) for v in active_filters.values())
+    _badge_html = f' <span style="background:var(--brand-red);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:4px;">{_filter_count}</span>' if _filter_count else ''
+
+    # Pure HTML floating button (visual only — the actual interaction uses st.popover below)
+    st.markdown(f"""
+    <button class="filter-fab" onclick="
+        var popoverBtns = document.querySelectorAll('.st-key-filter_popover button');
+        if (popoverBtns.length > 0) popoverBtns[0].click();
+    ">
+        <svg viewBox="0 0 24 24"><path d="M10 18h4v-2h-4v2zm-7-12v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+        Filters{_badge_html}
+    </button>
+    """, unsafe_allow_html=True)
 
     # Use the reset counter as part of the widget key so that changing it
     # forces Streamlit to recreate the widgets with empty defaults.
     _rc = st.session_state["filter_reset_counter"]
 
-    with st.expander("Filter Options", expanded=True):
-        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+    # Streamlit popover — contains the actual filter widgets
+    with st.container(key="filter_popover"):
+        with st.popover("⚙ Open Filter Panel", use_container_width=False):
+            st.markdown("#### Global Filters")
+            st.markdown("Select filters below and click **Apply Filters** to update the dashboard.")
 
-        zones = sorted(unified_df["Zone"].dropna().unique()) if "Zone" in unified_df.columns else []
-        # Restore previously applied filter selections (empty list = no filter selected).
-        sel_zones = f_col1.multiselect(
-            "Zone", zones,
-            default=st.session_state["global_filters"].get("Zone", []),
-            key=f"sel_zone_{_rc}",
-        )
+            f_col1, f_col2 = st.columns(2)
 
-        # States cascade from selected zones (or show all if no zone selected).
-        if "State" in unified_df.columns:
-            if sel_zones:
-                available_states = sorted(
-                    unified_df[unified_df["Zone"].isin(sel_zones)]["State"].dropna().unique()
-                )
+            zones = sorted(unified_df["Zone"].dropna().unique()) if "Zone" in unified_df.columns else []
+            sel_zones = f_col1.multiselect(
+                "Zone", zones,
+                default=st.session_state["global_filters"].get("Zone", []),
+                key=f"sel_zone_{_rc}",
+            )
+
+            if "State" in unified_df.columns:
+                if sel_zones:
+                    available_states = sorted(
+                        unified_df[unified_df["Zone"].isin(sel_zones)]["State"].dropna().unique()
+                    )
+                else:
+                    available_states = sorted(unified_df["State"].dropna().unique())
             else:
-                available_states = sorted(unified_df["State"].dropna().unique())
-        else:
-            available_states = []
-        saved_states = [s for s in st.session_state["global_filters"].get("State", []) if s in available_states]
-        sel_states = f_col2.multiselect(
-            "State", available_states,
-            default=saved_states,
-            key=f"sel_state_{_rc}",
-        )
+                available_states = []
+            saved_states = [s for s in st.session_state["global_filters"].get("State", []) if s in available_states]
+            sel_states = f_col2.multiselect(
+                "State", available_states,
+                default=saved_states,
+                key=f"sel_state_{_rc}",
+            )
 
-        desigs = sorted(unified_df["Designation"].dropna().unique()) if "Designation" in unified_df.columns else []
-        sel_desigs = f_col3.multiselect(
-            "Designation", desigs,
-            default=st.session_state["global_filters"].get("Designation", []),
-            key=f"sel_desig_{_rc}",
-        )
+            f_col3, f_col4 = st.columns(2)
 
-        dealers = sorted(unified_df["Dealer Name"].dropna().unique()) if "Dealer Name" in unified_df.columns else []
-        sel_dealers = f_col4.multiselect(
-            "Dealer Name", dealers,
-            default=st.session_state["global_filters"].get("Dealer Name", []),
-            key=f"sel_dealer_{_rc}",
-        )
+            desigs = sorted(unified_df["Designation"].dropna().unique()) if "Designation" in unified_df.columns else []
+            sel_desigs = f_col3.multiselect(
+                "Designation", desigs,
+                default=st.session_state["global_filters"].get("Designation", []),
+                key=f"sel_desig_{_rc}",
+            )
 
-        btn_col1, btn_col2, _ = st.columns([2, 2, 8])
+            dealers = sorted(unified_df["Dealer Name"].dropna().unique()) if "Dealer Name" in unified_df.columns else []
+            sel_dealers = f_col4.multiselect(
+                "Dealer Name", dealers,
+                default=st.session_state["global_filters"].get("Dealer Name", []),
+                key=f"sel_dealer_{_rc}",
+            )
 
-        if btn_col1.button("Apply Filters", type="primary"):
-            # Commit current widget selections as the active filter.
-            # An empty list for any dimension means "no filter on that dimension".
-            st.session_state["global_filters"] = {
-                "Zone":        sel_zones,
-                "State":       sel_states,
-                "Designation": sel_desigs,
-                "Dealer Name": sel_dealers,
-            }
-            st.rerun()
+            btn_col1, btn_col2, _ = st.columns([2, 2, 8])
 
-        if btn_col2.button("Clear Filters"):
-            # Wipe applied filters and increment the reset counter so the
-            # multiselect widgets are recreated with empty defaults.
-            st.session_state["global_filters"] = {}
-            st.session_state["filter_reset_counter"] += 1
-            st.rerun()
+            if btn_col1.button("Apply Filters", type="primary", key="apply_filters_btn"):
+                st.session_state["global_filters"] = {
+                    "Zone":        sel_zones,
+                    "State":       sel_states,
+                    "Designation": sel_desigs,
+                    "Dealer Name": sel_dealers,
+                }
+                st.rerun()
+
+            if btn_col2.button("Clear Filters", key="clear_filters_btn"):
+                st.session_state["global_filters"] = {}
+                st.session_state["filter_reset_counter"] += 1
+                st.rerun()
 
     # ── Apply committed filters to the data ─────────────────────────────────
-    # apply_filters already handles empty dicts/lists (returns full df).
     df_filtered = apply_filters(unified_df, st.session_state["global_filters"])
 
     # Recompute KPIs from filtered data so Overview cards reflect active filters.
     kpis = compute_all_kpis(df_filtered)
 
-    # ── Top Action Bar (filter status only — downloads moved to Exports tab) ───
-    st.markdown("---")
-    active_filters = {k: v for k, v in st.session_state["global_filters"].items() if v}
+    # ── Compact filter status pill ──────────────────────────────────────────
     filter_label = "filters applied" if active_filters else "no filters active — showing all data"
     st.markdown(
         f"<div style='padding:8px 14px; background:#F7F7F9; border: 1px solid #E8E8EC; border-radius:6px; "
@@ -711,7 +824,6 @@ if st.session_state.get("pipeline_complete"):
         f"Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows &nbsp;·&nbsp; {filter_label}</div>",
         unsafe_allow_html=True,
     )
-    st.markdown("---")
     # ── Pipeline Math Summary Pill ──────────────────────────────────────────
     raw_train = st.session_state.get("raw_training_count", 0)
     raw_rost = st.session_state.get("raw_roster_count", 0)
