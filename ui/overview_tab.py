@@ -8,21 +8,22 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-from config.constants import BRAND_RED, BRAND_CHARCOAL, BRAND_DARK_CORE, BRAND_LIGHT_GREY
-from utils.formatting_utils import style_kpi_card, format_count, format_pct
+from config.constants import BRAND_CHARCOAL
+from utils.formatting_utils import style_kpi_card, format_count, format_pct, style_section_header
 from analytics.overview import (
     national_summary, fy_trend, l_level_breakdown, zone_breakdown, state_coverage_top,
 )
 
 # Colour palette used across all charts in this tab
+# Colour palette used across all charts in this tab
 _L_COLORS = {
-    "L1": "#FFA94D",
-    "L2": "#FFD43B",
-    "L3": "#69DB7C",
-    "L4": "#228BE6",
-    "Untrained": "#E6E7E8",
-    "Trained": BRAND_RED,
-    "Pending": "#FF8C00",
+    "L1": "#FF7043",
+    "L2": "#FFCA28",
+    "L3": "#66BB6A",
+    "L4": "#42A5F5",
+    "Untrained": "#E0E0E0",
+    "Trained": "#455A64",
+    "Pending": "#F57C00",
 }
 
 _CHART_LAYOUT = dict(
@@ -33,42 +34,36 @@ _CHART_LAYOUT = dict(
 )
 
 
-def _section(title):
-    st.markdown(
-        f"<div style='margin:28px 0 10px 0; padding-bottom:6px; "
-        f"border-bottom:2px solid #ececf0;'>"
-        f"<span style='font-size:1.05rem; font-weight:700; color:#030213;'>{title}</span>"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+def _section(title, subtitle=""):
+    st.markdown(style_section_header(title, subtitle), unsafe_allow_html=True)
 
 
 def render_overview(unified_df, kpis, filters):
     """Render the Overview tab with KPI cards and All-India graphical dashboard."""
 
     # ── Section A: KPI Summary Cards ─────────────────────────────────────────
-    _section("National KPI Summary")
+    _section("National KPI Summary", "National KPIs · Training coverage · Zone and state summary")
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(style_kpi_card(
             "TOTAL MANPOWER", format_count(kpis.get("total_manpower", 0)),
-            "UNIQUE EMPLOYEES", BRAND_RED,
+            "UNIQUE EMPLOYEES", "#1A1A2E",
         ), unsafe_allow_html=True)
     with c2:
         st.markdown(style_kpi_card(
             "TRAINING COVERAGE", format_pct(kpis.get("coverage_pct", 0)),
-            "HIGH + MEDIUM CONFIDENCE", BRAND_CHARCOAL,
+            "HIGH + MEDIUM CONFIDENCE", "#2E7D32",
         ), unsafe_allow_html=True)
     with c3:
         st.markdown(style_kpi_card(
             "PENDING / ELIGIBLE", format_count(kpis.get("pending_count", 0)),
-            "AWAITING TRAINING", "#FF8C00",
+            "AWAITING TRAINING", "#F57C00",
         ), unsafe_allow_html=True)
     with c4:
         st.markdown(style_kpi_card(
             "L3/L4 SPECIALISTS", format_count(kpis.get("l3_l4_specialist_count", 0)),
-            "ADVANCED TECHNICIANS", BRAND_DARK_CORE,
+            "ADVANCED TECHNICIANS", "#1976D2",
         ), unsafe_allow_html=True)
 
     # Second KPI row
@@ -76,25 +71,25 @@ def render_overview(unified_df, kpis, filters):
     with c5:
         st.markdown(style_kpi_card(
             "TRAINED MANPOWER", format_count(kpis.get("unique_trained_manpower", 0)),
-            "UNIQUE EMPLOYEES TRAINED", "#69DB7C",
+            "UNIQUE EMPLOYEES TRAINED", "#2E7D32",
         ), unsafe_allow_html=True)
     with c6:
         untrained = kpis.get("total_manpower", 0) - kpis.get("unique_trained_manpower", 0)
         st.markdown(style_kpi_card(
             "UNTRAINED MANPOWER", format_count(max(untrained, 0)),
-            "NEVER TRAINED", "#FF6B6B",
+            "NEVER TRAINED", "#C62828",
         ), unsafe_allow_html=True)
     with c7:
         st.markdown(style_kpi_card(
             "UNRESOLVED IDENTITIES", format_count(kpis.get("unresolved_mapping_count", 0)),
-            "EXCLUDED FROM KPIs", BRAND_CHARCOAL,
+            "EXCLUDED FROM KPIs", "#78909C",
         ), unsafe_allow_html=True)
     with c8:
         st.markdown(style_kpi_card(
             "DATA QUALITY FLAGS", format_count(
                 kpis.get("regression_count", 0) + kpis.get("future_date_flag_count", 0)
             ),
-            "REGRESSIONS + FUTURE DATES", "#FF6B6B",
+            "REGRESSIONS + FUTURE DATES", "#F57C00",
         ), unsafe_allow_html=True)
 
     if unified_df is None or unified_df.empty:
@@ -114,45 +109,40 @@ def render_overview(unified_df, kpis, filters):
 
     with donut_col:
         if total_emp > 0:
-            fig_donut = go.Figure(go.Pie(
-                labels=["Trained", "Untrained", "Pending"],
-                values=[trained_emp, max(untrained_emp - pending_emp, 0), pending_emp],
-                hole=0.55,
-                marker_colors=[BRAND_RED, "#E6E7E8", "#FF8C00"],
-                textinfo="label+percent",
-                textfont=dict(size=12, family="Inter, sans-serif"),
-            ))
-            fig_donut.update_layout(
+            fig_bar = go.Figure()
+            fig_bar.add_trace(go.Bar(name="Trained", x=[trained_emp], y=["Status"], orientation='h', marker_color="#2E7D32"))
+            fig_bar.add_trace(go.Bar(name="Pending", x=[pending_emp], y=["Status"], orientation='h', marker_color="#F57C00"))
+            fig_bar.add_trace(go.Bar(name="Untrained", x=[max(untrained_emp - pending_emp, 0)], y=["Status"], orientation='h', marker_color="#E0E0E0"))
+            fig_bar.update_layout(
                 **_CHART_LAYOUT,
+                barmode="stack",
                 showlegend=True,
-                legend=dict(orientation="h", y=-0.1),
-                annotations=[dict(
-                    text=f"<b>{total_emp:,}</b><br>Total",
-                    x=0.5, y=0.5, font_size=14, showarrow=False,
-                    font_family="Inter, sans-serif",
-                )],
+                legend=dict(orientation="h", y=-0.2),
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False),
+                height=180,
             )
-            st.plotly_chart(fig_donut, use_container_width=True, key="manpower_donut")
+            st.plotly_chart(fig_bar, use_container_width=True, key="manpower_stacked_bar")
         else:
             st.info("No manpower data to display.")
 
     with stat_col:
         st.markdown("<br>", unsafe_allow_html=True)
         metrics = [
-            ("Total Employees", total_emp, BRAND_DARK_CORE),
-            ("Trained", trained_emp, BRAND_RED),
-            ("Untrained", untrained_emp, "#FF6B6B"),
-            ("Pending / Eligible", pending_emp, "#FF8C00"),
-            ("Total Dealers", nat.get("total_dealers", 0), BRAND_CHARCOAL),
-            ("States Covered", nat.get("total_states", 0), BRAND_CHARCOAL),
-            ("Zones", nat.get("total_zones", 0), BRAND_CHARCOAL),
+            ("Total Employees", total_emp, "#1A1A2E"),
+            ("Trained", trained_emp, "#2E7D32"),
+            ("Untrained", untrained_emp, "#C62828"),
+            ("Pending / Eligible", pending_emp, "#F57C00"),
+            ("Total Dealers", nat.get("total_dealers", 0), "#4A4A6A"),
+            ("States Covered", nat.get("total_states", 0), "#4A4A6A"),
+            ("Zones", nat.get("total_zones", 0), "#4A4A6A"),
         ]
         for label, val, color in metrics:
             st.markdown(
                 f"<div style='display:flex; justify-content:space-between; "
                 f"padding:7px 12px; margin-bottom:4px; border-radius:6px; "
-                f"background:{BRAND_LIGHT_GREY};'>"
-                f"<span style='color:#717182; font-size:0.85rem;'>{label}</span>"
+                f"background:#F7F7F9; border: 1px solid #E8E8EC;'>"
+                f"<span style='color:#6B6B8D; font-size:0.85rem;'>{label}</span>"
                 f"<span style='color:{color}; font-weight:700; font-size:0.95rem;'>{val:,}</span>"
                 f"</div>",
                 unsafe_allow_html=True,
@@ -167,22 +157,13 @@ def render_overview(unified_df, kpis, filters):
         fig_fy.add_trace(go.Bar(
             x=fy_df["FY"], y=fy_df["Trained_Count"],
             name="Training Records",
-            marker_color=BRAND_RED,
+            marker_color="#455A64",
             opacity=0.85,
-        ))
-        fig_fy.add_trace(go.Scatter(
-            x=fy_df["FY"], y=fy_df["Unique_Employees"],
-            name="Unique Employees",
-            mode="lines+markers",
-            line=dict(color=BRAND_DARK_CORE, width=2),
-            marker=dict(size=7),
-            yaxis="y2",
         ))
         fig_fy.update_layout(
             **_CHART_LAYOUT,
             xaxis_title="Financial Year",
             yaxis=dict(title="Training Records", showgrid=True, gridcolor="#ececf0"),
-            yaxis2=dict(title="Unique Employees", overlaying="y", side="right", showgrid=False),
             legend=dict(orientation="h", y=1.1),
             barmode="group",
         )
@@ -227,15 +208,15 @@ def render_overview(unified_df, kpis, filters):
             fig_zone_main = go.Figure()
             fig_zone_main.add_trace(go.Bar(
                 name="Trained", x=zone_df["Zone"], y=zone_df["Trained"],
-                marker_color=BRAND_RED,
+                marker_color="#455A64",
             ))
             fig_zone_main.add_trace(go.Bar(
                 name="Untrained", x=zone_df["Zone"], y=zone_df["Untrained"],
-                marker_color="#E6E7E8",
+                marker_color="#E0E0E0",
             ))
             fig_zone_main.add_trace(go.Bar(
                 name="Pending", x=zone_df["Zone"], y=zone_df["Pending"],
-                marker_color="#FF8C00",
+                marker_color="#F57C00",
             ))
             fig_zone_main.update_layout(
                 **_CHART_LAYOUT,
@@ -293,7 +274,7 @@ def render_overview(unified_df, kpis, filters):
                 state_df.sort_values("Coverage_Pct"),
                 x="Coverage_Pct", y="State", orientation="h",
                 color="Coverage_Pct",
-                color_continuous_scale=[[0, "#FFD43B"], [0.5, "#FFA94D"], [1.0, BRAND_RED]],
+                color_continuous_scale=[[0, "#E0E0E0"], [1.0, "#455A64"]],
                 labels={"Coverage_Pct": "Coverage %", "State": ""},
                 text="Coverage_Pct",
             )
