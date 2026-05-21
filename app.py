@@ -533,29 +533,10 @@ if "topnav_tabs" not in st.session_state and _query_tab in NAV_KEYS:
 if "topnav_tabs" not in st.session_state or st.session_state["topnav_tabs"] not in NAV_KEYS:
     st.session_state["topnav_tabs"] = st.session_state["current_tab"]
 
-# Native sidebar state used instead of custom CSS injection
-
-# ═══════════════════════════════════════════════════════════════════════════
-# SIDEBAR
-# ═══════════════════════════════════════════════════════════════════════════
-sidebar_result = render_sidebar()
-is_running = sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]
-
 is_app_loaded = "unified_df" in st.session_state and st.session_state["unified_df"] is not None
 current_page = st.session_state.get("current_tab", "Overview")
 
-if not is_app_loaded:
-    nav_options = ["Help & Guide", "Upload Data"]
-    if current_page not in nav_options:
-        current_page = "Help & Guide"
-        st.session_state["current_tab"] = current_page
-else:
-    nav_options = NAV_KEYS
-    if current_page in ["Upload Data"]:
-        current_page = "Overview"
-        st.session_state["current_tab"] = current_page
-
-if not is_running:
+if is_app_loaded or current_page == "Help & Guide":
     st.markdown(f"""
     <div class="app-topnav">
         <div class="app-topnav-brand">
@@ -572,8 +553,8 @@ if not is_running:
 
     _selected_tab = st.segmented_control(
         "Dashboard sections",
-        options=nav_options,
-        default=current_page,
+        options=NAV_KEYS,
+        default=st.session_state["current_tab"],
         selection_mode="single",
         key="topnav_tabs",
         label_visibility="collapsed",
@@ -581,12 +562,17 @@ if not is_running:
     page = _selected_tab or st.session_state["current_tab"]
 else:
     page = st.session_state["current_tab"]
-
 if page != st.session_state["current_tab"]:
     st.session_state["current_tab"] = page
 if st.query_params.get("tab") != page:
     st.query_params["tab"] = page
 
+# Native sidebar state used instead of custom CSS injection
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SIDEBAR
+# ═══════════════════════════════════════════════════════════════════════════
+sidebar_result = render_sidebar()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PIPELINE EXECUTION — with real-time progress bar
@@ -752,7 +738,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             st.session_state["audit_log"] = audit_log
             st.session_state["pipeline_complete"] = True
             st.session_state["sidebar_state"] = "collapsed"
-            st.session_state["current_tab"] = "Overview"
+
             persist_mappings(unified_df)
 
             log_pipeline_event(
@@ -943,9 +929,13 @@ if st.session_state.get("pipeline_complete"):
 
 
 else:
-    if page == "Help & Guide":
+    # ── Pre-Upload View ───────────────────────────────────────────────────
+    tab_help, tab_upload = st.tabs(["Help & Guide", "Upload Data"])
+    
+    with tab_help:
         render_help()
-    elif page == "Upload Data":
+        
+    with tab_upload:
         # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────
         st.markdown(f"""
         <div style="text-align:center; padding:80px 20px;">
