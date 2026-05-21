@@ -71,32 +71,32 @@ def style_kpi_card(label, value, desc="", border_color=None):
     return f"""<div style="
 background-color: var(--background);
 border: 1px solid var(--muted);
-border-radius: 8px;
-padding: 14px 16px;
-min-height: 90px;
+border-radius: 10px;
+padding: 18px 20px;
+min-height: 110px;
 position: relative;
 box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-margin-bottom: 15px;
+margin-bottom: 18px;
 ">
 <div style="
 position: absolute;
 left: 0;
-top: 14px;
-width: 3px;
-height: 32px;
+top: 18px;
+width: 4px;
+height: 38px;
 background-color: {bc};
 border-radius: 0 2px 2px 0;
 "></div>
-<div style="padding-left: 8px;">
-<div style="color: var(--muted-foreground); font-size: 10.5px; font-weight: 600;
-text-transform: uppercase; letter-spacing: 0.5px;">
+<div style="padding-left: 12px;">
+<div style="color: var(--muted-foreground); font-size: 12px; font-weight: 700;
+text-transform: uppercase; letter-spacing: 0.7px;">
 {label}
 </div>
-<div style="color: var(--foreground); font-size: 22px; font-weight: 800;
-margin-top: 3px; line-height: 1.2;">
+<div style="color: var(--foreground); font-size: 28px; font-weight: 800;
+margin-top: 6px; line-height: 1.15;">
 {value}
 </div>
-<div style="color: var(--muted-foreground); font-size: 10px; font-weight: 500; margin-top: 1px;">
+<div style="color: var(--muted-foreground); font-size: 12px; font-weight: 500; margin-top: 4px; line-height: 1.35;">
 {desc}
 </div>
 </div>
@@ -105,12 +105,12 @@ margin-top: 3px; line-height: 1.2;">
 
 def style_section_header(title, subtitle=""):
     return (
-        f'<div style="margin-bottom: 14px;">'
-        f'<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px;">'
-        f'<div style="width: 3px; height: 16px; background: #D2232A; border-radius: 2px; flex-shrink: 0;"></div>'
-        f'<span style="font-size: 14px; font-weight: 700; color: var(--foreground);">{title}</span>'
+        f'<div style="margin: 28px 0 18px; padding-top: 18px; border-top: 1px solid #E8E8EC;">'
+        f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">'
+        f'<div style="width: 4px; height: 22px; background: #D2232A; border-radius: 2px; flex-shrink: 0;"></div>'
+        f'<span style="font-size: 20px; font-weight: 800; color: var(--foreground); line-height: 1.2;">{title}</span>'
         f'</div>'
-        f'<div style="font-size: 11px; color: var(--muted-foreground); padding-left: 11px;">{subtitle}</div>'
+        f'<div style="font-size: 13px; color: var(--muted-foreground); padding-left: 14px; line-height: 1.45;">{subtitle}</div>'
         f'</div>'
     )
 
@@ -227,4 +227,3 @@ COLUMN_CONFIGS = {
     "Pending": "Pending Count",
     "Total": "Total Count",
 }
-

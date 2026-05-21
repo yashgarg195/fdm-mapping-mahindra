@@ -30,8 +30,10 @@ _CHART_LAYOUT = dict(
     plot_bgcolor="rgba(0,0,0,0)",
     paper_bgcolor="rgba(0,0,0,0)",
     font=dict(family="Inter, Segoe UI, sans-serif", size=12),
-    margin=dict(t=30, b=20, l=20, r=20),
+    margin=dict(t=40, b=20, l=20, r=20),
 )
+_ZONE_CHART_LAYOUT = _CHART_LAYOUT.copy()
+_ZONE_CHART_LAYOUT["margin"] = dict(t=88, b=20, l=20, r=20)
 
 
 def _section(title, subtitle=""):
@@ -219,11 +221,17 @@ def render_overview(unified_df, kpis, filters):
                 marker_color="#F57C00",
             ))
             fig_zone_main.update_layout(
-                **_CHART_LAYOUT,
+                **_ZONE_CHART_LAYOUT,
                 barmode="stack",
-                title="Trained vs Untrained by Zone",
+                title=dict(text="Trained vs Untrained by Zone", x=0, y=0.98),
                 yaxis=dict(title="Employees", showgrid=True, gridcolor="#ececf0"),
-                legend=dict(orientation="h", y=1.1),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="left",
+                    x=0,
+                ),
             )
             st.plotly_chart(fig_zone_main, use_container_width=True, key="zone_main_chart")
 
@@ -238,11 +246,17 @@ def render_overview(unified_df, kpis, filters):
                         marker_color=color,
                     ))
             fig_zone_ll.update_layout(
-                **_CHART_LAYOUT,
+                **_ZONE_CHART_LAYOUT,
                 barmode="stack",
-                title="L1–L4 Skill Distribution by Zone",
+                title=dict(text="L1–L4 Skill Distribution by Zone", x=0, y=0.98),
                 yaxis=dict(title="Employee Count", showgrid=True, gridcolor="#ececf0"),
-                legend=dict(orientation="h", y=1.1),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="left",
+                    x=0,
+                ),
             )
             st.plotly_chart(fig_zone_ll, use_container_width=True, key="zone_ll_chart")
 

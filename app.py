@@ -46,10 +46,13 @@ from utils.logging_utils import (
 # ═══════════════════════════════════════════════════════════════════════════
 # PAGE CONFIG
 # ═══════════════════════════════════════════════════════════════════════════
+if "sidebar_state" not in st.session_state:
+    st.session_state["sidebar_state"] = "expanded"
+
 st.set_page_config(
     page_title="Mahindra Training Analytics & Manpower Intelligence",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state=st.session_state["sidebar_state"],
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -86,7 +89,7 @@ st.markdown(f"""
 
     html, body, [class*="css"] {{
         font-family: 'Inter', 'Segoe UI', sans-serif;
-        font-size: 16px;
+        font-size: 18px;
     }}
     .stApp {{
         background-color: var(--input-background);
@@ -94,9 +97,46 @@ st.markdown(f"""
     }}
     .block-container {{
         padding-top: 5.25rem !important;
+        padding-bottom: 2.5rem !important;
     }}
-    [data-testid="stSidebarCollapsedControl"] {{
+    p, li, label, .stMarkdown, .stText {{
+        font-size: 1rem !important;
+        line-height: 1.55 !important;
+    }}
+    [data-testid="stMetricValue"],
+    [data-testid="stMetricLabel"],
+    [data-testid="stCaptionContainer"],
+    .stSelectbox label,
+    .stMultiSelect label,
+    .stRadio label,
+    .stCheckbox label,
+    .stDownloadButton button,
+    .stButton button,
+    .stTextInput label,
+    .stFileUploader label {{
+        font-size: 1rem !important;
+    }}
+    .stButton button,
+    .stDownloadButton button,
+    [data-testid="stPopoverButton"] {{
+        min-height: 44px !important;
+    }}
+    [data-testid="stDataFrame"] *,
+    .stTable * {{
+        font-size: 0.98rem !important;
+    }}
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="stSidebarCollapseButton"] {{
         top: 72px !important;
+        z-index: 1000002 !important;
+    }}
+    [data-testid="stExpandSidebarButton"] button,
+    [data-testid="stSidebarCollapseButton"] button,
+    [data-testid="stSidebarCollapsedControl"] button {{
+        background: var(--background) !important;
+        border-radius: 999px !important;
+        box-shadow: 0 6px 18px rgba(26, 26, 46, 0.12) !important;
     }}
     .app-topnav {{
         position: fixed;
@@ -125,7 +165,7 @@ st.markdown(f"""
         border-radius: 2px;
     }}
     .app-topnav-title {{
-        font-size: 14px;
+        font-size: 17px;
         font-weight: 800;
         letter-spacing: 0.02em;
         color: var(--brand-charcoal);
@@ -134,7 +174,7 @@ st.markdown(f"""
     }}
     .app-topnav-subtitle {{
         margin-top: 3px;
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 600;
         color: var(--muted-foreground);
         letter-spacing: 0.08em;
@@ -156,7 +196,7 @@ st.markdown(f"""
         min-width: max-content;
         padding: 0 22px;
         color: var(--muted-foreground);
-        font-size: 13px;
+        font-size: 15px;
         font-weight: 650;
         border-right: 1px solid #E8E8EC;
         background: transparent;
@@ -191,10 +231,12 @@ st.markdown(f"""
         flex: 1 0 max-content !important;
         border-radius: 0 !important;
         border: none !important;
+        border-left: 1px solid #E8E8EC !important;
         border-right: 1px solid #E8E8EC !important;
+        margin-left: -1px !important;
         background: transparent !important;
         color: var(--muted-foreground) !important;
-        font-size: 13px !important;
+        font-size: 15px !important;
         font-weight: 650 !important;
         padding: 0 10px !important;
         box-shadow: none !important;
@@ -207,7 +249,9 @@ st.markdown(f"""
         position: relative;
         background: var(--background) !important;
         color: var(--brand-charcoal) !important;
+        border-left: 1px solid #E8E8EC !important;
         border-right: 1px solid #E8E8EC !important;
+        z-index: 1 !important;
     }}
     .st-key-topnav_tabs [role="radiogroup"] > button[kind="segmented_controlActive"]::after {{
         content: "";
@@ -382,106 +426,62 @@ st.markdown(f"""
         opacity: 1 !important;
     }}
     /* ── Floating Filters Button ──────────────────────── */
-    .filter-fab {{
-        position: fixed;
-        top: 78px;
-        right: 24px;
-        z-index: 999998;
-        background: var(--brand-charcoal);
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 18px;
-        font-size: 12px;
-        font-weight: 700;
-        font-family: 'Inter', sans-serif;
-        letter-spacing: 0.02em;
-        cursor: pointer;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        transition: background 0.15s, box-shadow 0.15s;
+    .st-key-filter_popover {{
+        position: fixed !important;
+        top: 78px !important;
+        right: 24px !important;
+        width: auto !important;
+        height: auto !important;
+        z-index: 1000000 !important;
     }}
-    .filter-fab:hover {{
-        background: var(--brand-red);
-        box-shadow: 0 6px 20px rgba(210,35,42,0.35);
+    .st-key-filter_popover [data-testid="stPopover"] {{
+        position: fixed !important;
+        top: 78px !important;
+        right: 24px !important;
+        left: auto !important;
+        bottom: auto !important;
+        width: auto !important;
+        height: auto !important;
+        z-index: 1000000 !important;
     }}
-    .filter-fab svg {{
-        width: 16px;
-        height: 16px;
-        fill: currentColor;
+    .st-key-filter_popover [data-testid="stPopoverButton"] {{
+        position: static !important;
+        z-index: 1000001 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        min-height: 42px !important;
+        padding: 10px 14px !important;
+        border: 1px solid rgba(210,35,42,0.18) !important;
+        border-radius: 999px !important;
+        background: linear-gradient(180deg, #D2232A 0%, #B81D23 100%) !important;
+        color: #fff !important;
+        box-shadow: 0 10px 24px rgba(210,35,42,0.22) !important;
+        white-space: nowrap !important;
     }}
-    /* ── Filter Panel Overlay ─────────────────────────── */
-    .filter-overlay {{
-        position: fixed;
-        inset: 0;
-        z-index: 999997;
-        background: rgba(0,0,0,0.25);
-        backdrop-filter: blur(2px);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.2s ease;
+    .st-key-filter_popover [data-testid="stPopoverButton"]:hover {{
+        background: linear-gradient(180deg, #E3343B 0%, #C22027 100%) !important;
+        box-shadow: 0 12px 28px rgba(210,35,42,0.28) !important;
     }}
-    .filter-overlay.active {{
-        opacity: 1;
-        pointer-events: auto;
+    .st-key-filter_popover [data-testid="stPopoverButton"] [data-testid="stMarkdownContainer"] p {{
+        margin: 0 !important;
+        color: #fff !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.02em !important;
     }}
-    .filter-panel {{
-        position: fixed;
-        top: 0;
-        right: -55%;
-        width: 50%;
-        height: 100vh;
-        z-index: 999998;
-        background: var(--background);
-        border-left: 1px solid var(--muted);
-        box-shadow: -8px 0 30px rgba(0,0,0,0.12);
-        padding: 80px 32px 32px;
-        overflow-y: auto;
-        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .st-key-filter_popover [data-testid="stPopoverButton"] svg {{
+        color: #fff !important;
+        fill: currentColor !important;
     }}
-    .filter-panel.active {{
-        right: 0;
-    }}
-    .filter-panel-header {{
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 24px;
-    }}
-    .filter-panel-title {{
-        font-size: 16px;
-        font-weight: 800;
-        color: var(--foreground);
-        letter-spacing: 0.02em;
-    }}
-    .filter-panel-close {{
-        background: var(--muted);
-        border: none;
-        border-radius: 6px;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: var(--foreground);
-        font-size: 18px;
-        font-weight: 700;
-        transition: background 0.15s;
-    }}
-    .filter-panel-close:hover {{
-        background: var(--accent);
-    }}
-    /* Hide the popover trigger button — the floating FAB triggers it via JS */
-    .st-key-filter_popover > div > .stPopover > button {{
-        display: none !important;
-    }}
-    /* Make the popover panel wider (half screen) */
-    .st-key-filter_popover div[data-testid="stPopover"] > div {{
-        min-width: 50vw !important;
-        max-width: 50vw !important;
+    .st-key-filter_popover [data-testid="stPopoverBody"] {{
+        width: min(50vw, 760px) !important;
+        min-width: min(50vw, 760px) !important;
+        max-width: calc(100vw - 48px) !important;
+        max-height: min(68vh, 720px) !important;
+        overflow-y: auto !important;
+        border-radius: 22px !important;
+        padding: 8px 8px 4px 8px !important;
+        box-shadow: 0 18px 50px rgba(0,0,0,0.18) !important;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -501,6 +501,8 @@ if "global_filters" not in st.session_state:
 # Counter used to force-reset multiselect widgets when Clear Filters is clicked.
 if "filter_reset_counter" not in st.session_state:
     st.session_state["filter_reset_counter"] = 0
+if "filter_popover_nonce" not in st.session_state:
+    st.session_state["filter_popover_nonce"] = 0
 if "current_tab" not in st.session_state:
     st.session_state["current_tab"] = "Overview"
 
@@ -512,10 +514,13 @@ NAV_ITEMS = [
     ("Audit & Exceptions", "Audit & Exceptions"),
     ("Exports", "Exports"),
 ]
+NAV_KEYS = [key for key, _ in NAV_ITEMS]
 
 _query_tab = st.query_params.get("tab")
-if _query_tab in [key for key, _ in NAV_ITEMS]:
+if "topnav_tabs" not in st.session_state and _query_tab in NAV_KEYS:
     st.session_state["current_tab"] = _query_tab
+if "topnav_tabs" not in st.session_state or st.session_state["topnav_tabs"] not in NAV_KEYS:
+    st.session_state["topnav_tabs"] = st.session_state["current_tab"]
 
 st.markdown(f"""
 <div class="app-topnav">
@@ -533,15 +538,17 @@ st.markdown(f"""
 
 _selected_tab = st.segmented_control(
     "Dashboard sections",
-    options=[key for key, _ in NAV_ITEMS],
+    options=NAV_KEYS,
     default=st.session_state["current_tab"],
+    required=True,
     key="topnav_tabs",
     label_visibility="collapsed",
 )
-if _selected_tab and _selected_tab != st.session_state["current_tab"]:
-    st.session_state["current_tab"] = _selected_tab
-    st.query_params["tab"] = _selected_tab
-    st.rerun()
+page = _selected_tab or st.session_state["current_tab"]
+if page != st.session_state["current_tab"]:
+    st.session_state["current_tab"] = page
+if st.query_params.get("tab") != page:
+    st.query_params["tab"] = page
 
 # Native sidebar state used instead of custom CSS injection
 
@@ -689,6 +696,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             st.session_state["stats"] = stats
             st.session_state["audit_log"] = audit_log
             st.session_state["pipeline_complete"] = True
+            st.session_state["sidebar_state"] = "collapsed"
 
             persist_mappings(unified_df)
 
@@ -730,26 +738,46 @@ if st.session_state.get("pipeline_complete"):
     # ── Floating Filter Button + Popover ───────────────────────────────────────
     active_filters = {k: v for k, v in st.session_state["global_filters"].items() if v}
     _filter_count = sum(len(v) for v in active_filters.values())
-    _badge_html = f' <span style="background:var(--brand-red);color:#fff;border-radius:50%;padding:1px 6px;font-size:10px;margin-left:4px;">{_filter_count}</span>' if _filter_count else ''
-
-    # Pure HTML floating button (visual only — the actual interaction uses st.popover below)
-    st.markdown(f"""
-    <button class="filter-fab" onclick="
-        var popoverBtns = document.querySelectorAll('.st-key-filter_popover button');
-        if (popoverBtns.length > 0) popoverBtns[0].click();
-    ">
-        <svg viewBox="0 0 24 24"><path d="M10 18h4v-2h-4v2zm-7-12v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
-        Filters{_badge_html}
-    </button>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <style>
+            .st-key-filter_popover [data-testid="stPopoverButton"]::after {{
+                content: "{_filter_count}";
+                display: {"inline-flex" if _filter_count else "none"};
+                align-items: center;
+                justify-content: center;
+                min-width: 18px;
+                height: 18px;
+                padding: 0 5px;
+                margin-left: 6px;
+                border-radius: 999px;
+                background: var(--brand-red);
+                color: #fff;
+                font-size: 10px;
+                font-weight: 800;
+                line-height: 1;
+            }}
+            .st-key-filter_popover [data-testid="stPopoverButton"] [aria-hidden="true"] {{
+                color: #fff !important;
+            }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Use the reset counter as part of the widget key so that changing it
     # forces Streamlit to recreate the widgets with empty defaults.
     _rc = st.session_state["filter_reset_counter"]
+    _popover_nonce = st.session_state["filter_popover_nonce"]
 
     # Streamlit popover — contains the actual filter widgets
     with st.container(key="filter_popover"):
-        with st.popover("⚙ Open Filter Panel", use_container_width=False):
+        with st.popover(
+            "Filters",
+            icon=":material/filter_alt:",
+            use_container_width=False,
+            key=f"filters_popover_{_popover_nonce}",
+        ):
             st.markdown("#### Global Filters")
             st.markdown("Select filters below and click **Apply Filters** to update the dashboard.")
 
@@ -794,20 +822,22 @@ if st.session_state.get("pipeline_complete"):
                 key=f"sel_dealer_{_rc}",
             )
 
-            btn_col1, btn_col2, _ = st.columns([2, 2, 8])
+            btn_col1, btn_col2 = st.columns(2)
 
-            if btn_col1.button("Apply Filters", type="primary", key="apply_filters_btn"):
+            if btn_col1.button("Apply Filters", type="primary", key="apply_filters_btn", use_container_width=True):
                 st.session_state["global_filters"] = {
                     "Zone":        sel_zones,
                     "State":       sel_states,
                     "Designation": sel_desigs,
                     "Dealer Name": sel_dealers,
                 }
+                st.session_state["filter_popover_nonce"] += 1
                 st.rerun()
 
-            if btn_col2.button("Clear Filters", key="clear_filters_btn"):
+            if btn_col2.button("Clear Filters", key="clear_filters_btn", use_container_width=True):
                 st.session_state["global_filters"] = {}
                 st.session_state["filter_reset_counter"] += 1
+                st.session_state["filter_popover_nonce"] += 1
                 st.rerun()
 
     # ── Apply committed filters to the data ─────────────────────────────────
