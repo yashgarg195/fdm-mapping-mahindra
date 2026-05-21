@@ -1,0 +1,80 @@
+Mahindra Training Analytics Dashboard - Employee Local Run Guide
+===============================================================
+
+For Employees
+-------------
+1. Open this folder:
+   Employee_Local_Setup
+2. Double-click:
+   START_EMPLOYEE_DASHBOARD.bat
+3. Wait for the browser to open at:
+   http://localhost:8501
+4. Keep the black launcher window open while using the dashboard.
+
+On first run, the launcher automatically:
+- checks for Python;
+- downloads and installs a private local Python runtime if needed;
+- creates a local app environment;
+- installs dashboard packages;
+- starts the Streamlit dashboard.
+
+
+What Employees Need
+-------------------
+- Windows 10 or Windows 11.
+- Internet access for first-time setup, unless IT has prepared offline packages.
+- A browser such as Microsoft Edge or Google Chrome.
+
+Employees do not need to manually install Python if the laptop can download
+from python.org during first-time setup.
+
+
+Data Safety Notes
+-----------------
+- The launcher starts the app on localhost only.
+- The app is not exposed as a public website by this launcher.
+- Uploaded Excel data is processed on the employee's laptop.
+- Do not place real company data in GitHub or shared public folders.
+
+
+For IT / Offline Setup
+----------------------
+If employee laptops cannot access the internet:
+1. On one internet-enabled Windows machine, keep the full dashboard folder.
+2. Open Employee_Local_Setup.
+3. Double-click PREPARE_OFFLINE_PACKAGE_BUNDLE.bat.
+4. Wait for Employee_Local_Setup\offline_packages to be created.
+5. Copy the complete dashboard folder, including Employee_Local_Setup, to each
+   employee laptop.
+6. Employees double-click START_EMPLOYEE_DASHBOARD.bat.
+
+Note: if an employee laptop has no Python and no internet, IT should either run
+START_EMPLOYEE_DASHBOARD.bat once while connected to the internet, or preinstall
+Python / provide an approved local Python runtime.
+
+
+Troubleshooting
+---------------
+If the launcher cannot download Python:
+- Connect to the internet.
+- Check company proxy/firewall rules for python.org.
+- Ask IT to run the setup once on the laptop.
+
+If package installation fails:
+- Connect to the internet and run the launcher again.
+- Or ask IT to provide Employee_Local_Setup\offline_packages.
+
+If the browser does not open:
+- Open Microsoft Edge or Chrome manually.
+- Go to http://localhost:8501.
+
+If port 8501 is already in use:
+- Close other dashboard or Streamlit windows.
+- Run the launcher again.
+
+
+Recommended Specs
+-----------------
+- 8 GB RAM minimum.
+- 16 GB RAM recommended for large Excel files.
+- 1-2 GB free disk space for Python, packages, and temporary report exports.
