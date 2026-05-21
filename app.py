@@ -69,6 +69,19 @@ st.markdown(f"""
       --destructive: #C62828;
       --input-background: #ffffff;
       --radius: 6px;
+      --brand-red: {BRAND_RED};
+      --brand-charcoal: {BRAND_CHARCOAL};
+    }}
+    @media (prefers-color-scheme: dark) {{
+      :root {{
+        --background: #111118;
+        --foreground: #F7F7F9;
+        --primary: #F7F7F9;
+        --muted: #252532;
+        --muted-foreground: #B7B7C8;
+        --accent: #1B1B26;
+        --input-background: #111118;
+      }}
     }}
 
     html, body, [class*="css"] {{
@@ -78,6 +91,175 @@ st.markdown(f"""
     .stApp {{
         background-color: var(--input-background);
         color: var(--foreground);
+    }}
+    .block-container {{
+        padding-top: 5.25rem !important;
+    }}
+    [data-testid="stSidebarCollapsedControl"] {{
+        top: 72px !important;
+    }}
+    .app-topnav {{
+        position: fixed;
+        inset: 0 0 auto 0;
+        height: 64px;
+        z-index: 999999;
+        background: var(--background);
+        border-bottom: 1px solid #E8E8EC;
+        display: flex;
+        align-items: stretch;
+        box-shadow: 0 1px 0 rgba(26, 26, 46, 0.03);
+    }}
+    .app-topnav-brand {{
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 318px;
+        padding: 0 22px;
+        border-right: 1px solid #E8E8EC;
+        background: var(--background);
+    }}
+    .app-topnav-mark {{
+        width: 3px;
+        height: 28px;
+        background: var(--brand-red);
+        border-radius: 2px;
+    }}
+    .app-topnav-title {{
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: var(--brand-charcoal);
+        line-height: 1.1;
+        white-space: nowrap;
+    }}
+    .app-topnav-subtitle {{
+        margin-top: 3px;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--muted-foreground);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }}
+    .app-topnav-items {{
+        display: flex;
+        align-items: stretch;
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+    }}
+    .app-topnav-item {{
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: max-content;
+        padding: 0 22px;
+        color: var(--muted-foreground);
+        font-size: 13px;
+        font-weight: 650;
+        border-right: 1px solid #E8E8EC;
+        background: transparent;
+        user-select: none;
+        cursor: pointer;
+        text-decoration: none;
+    }}
+    .st-key-topnav_tabs {{
+        position: fixed !important;
+        top: 0 !important;
+        left: 318px !important;
+        right: 0 !important;
+        height: 64px !important;
+        z-index: 1000000 !important;
+        background: transparent !important;
+        padding: 0 !important;
+    }}
+    .st-key-topnav_tabs [data-testid="stWidgetLabel"] {{
+        display: none !important;
+    }}
+    .st-key-topnav_tabs [role="radiogroup"] {{
+        display: flex !important;
+        align-items: stretch !important;
+        height: 64px !important;
+        gap: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        overflow-x: auto !important;
+    }}
+    .st-key-topnav_tabs [role="radiogroup"] > button {{
+        height: 64px !important;
+        flex: 1 0 max-content !important;
+        border-radius: 0 !important;
+        border: 0 !important;
+        border-right: 1px solid #E8E8EC !important;
+        background: transparent !important;
+        color: var(--muted-foreground) !important;
+        font-size: 13px !important;
+        font-weight: 650 !important;
+        padding: 0 10px !important;
+        box-shadow: none !important;
+    }}
+    .st-key-topnav_tabs [role="radiogroup"] > button:hover {{
+        background: var(--muted) !important;
+        color: var(--brand-charcoal) !important;
+    }}
+    .st-key-topnav_tabs [role="radiogroup"] > button[kind="segmented_controlActive"] {{
+        position: relative;
+        background: var(--background) !important;
+        color: var(--brand-charcoal) !important;
+    }}
+    .st-key-topnav_tabs [role="radiogroup"] > button[kind="segmented_controlActive"]::after {{
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 3px;
+        background: var(--brand-red);
+    }}
+    .app-topnav-item:hover {{
+        color: var(--brand-charcoal);
+        background: var(--muted);
+    }}
+    .app-topnav-item.active {{
+        color: var(--brand-charcoal);
+        background: var(--background);
+    }}
+    @media (prefers-color-scheme: dark) {{
+        .app-topnav,
+        .app-topnav-brand {{
+            border-color: #2D2D3A;
+        }}
+        .app-topnav-title,
+        .app-topnav-item:hover,
+        .app-topnav-item.active {{
+            color: var(--foreground);
+        }}
+        .app-topnav-item,
+        .st-key-topnav_tabs [role="radiogroup"] > button {{
+            border-color: #2D2D3A;
+        }}
+        .st-key-topnav_tabs [role="radiogroup"] > button:hover,
+        .st-key-topnav_tabs [role="radiogroup"] > button[kind="segmented_controlActive"] {{
+            color: var(--foreground) !important;
+        }}
+        header[data-testid="stHeader"] {{
+            background-color: var(--background);
+            border-bottom-color: var(--muted);
+        }}
+        section[data-testid="stSidebar"] {{
+            background-color: var(--background) !important;
+            border-right-color: var(--muted);
+        }}
+    }}
+    .app-topnav-item.active::after {{
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 3px;
+        background: var(--brand-red);
     }}
     /* Ensure all main-area text is dark */
     section[data-testid="stMain"] .stMarkdown,
@@ -95,23 +277,6 @@ st.markdown(f"""
     header[data-testid="stHeader"] {{
         background-color: var(--background);
         border-bottom: 1px solid var(--muted);
-    }}
-    /* ── Tabs ──────────────────────────────────────────── */
-    .stTabs [data-baseweb="tab-list"] {{
-        gap: 8px;
-    }}
-    .stTabs [data-baseweb="tab"] {{
-        background-color: transparent;
-        border-radius: var(--radius) var(--radius) 0 0;
-        padding: 8px 20px;
-        font-weight: 500;
-        color: var(--muted-foreground) !important;
-        border-bottom: 2px solid transparent;
-    }}
-    .stTabs [aria-selected="true"] {{
-        background-color: transparent !important;
-        color: var(--foreground) !important;
-        border-bottom: 2px solid var(--primary);
     }}
     /* ── Sidebar ───────────────────────────────────────── */
     section[data-testid="stSidebar"] {{
@@ -142,7 +307,7 @@ st.markdown(f"""
     /* ── Primary Buttons (brand red) ───────────────────── */
     .stButton>button[kind="primary"],
     section[data-testid="stSidebar"] .stButton>button[kind="primary"] {{
-        background-color: var(--primary) !important;
+        background-color: var(--brand-red) !important;
         color: #ffffff !important;
         font-weight: 600;
         border: none;
@@ -152,7 +317,7 @@ st.markdown(f"""
     }}
     .stButton>button[kind="primary"]:hover,
     section[data-testid="stSidebar"] .stButton>button[kind="primary"]:hover {{
-        background-color: #0F0F24 !important;
+        background-color: #A91F24 !important;
         color: #ffffff !important;
     }}
     /* ── Secondary Buttons (outline style) ─────────────── */
@@ -219,23 +384,6 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# HEADER — Compact Figma Style
-# ═══════════════════════════════════════════════════════════════════════════
-st.markdown(f"""
-<div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #E8E8EC; border-radius: 8px;">
-    <div style="width:3px; height:24px; background:{BRAND_RED}; border-radius:2px;"></div>
-    <div>
-        <div style="font-size:15px; font-weight:700; color:{BRAND_CHARCOAL};">
-            MAHINDRA ENTERPRISE DASHBOARD
-        </div>
-        <div style="font-size:11px; color:#8B8BA7; margin-top:2px;">
-            Training Analytics & Manpower Intelligence
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════════════════════════════════════
 # SESSION STATE INITIALIZATION
 # ═══════════════════════════════════════════════════════════════════════════
 for key in ["unified_df", "duplicate_df", "backlog_df", "nomination_df",
@@ -250,6 +398,67 @@ if "global_filters" not in st.session_state:
 # Counter used to force-reset multiselect widgets when Clear Filters is clicked.
 if "filter_reset_counter" not in st.session_state:
     st.session_state["filter_reset_counter"] = 0
+if "current_tab" not in st.session_state:
+    st.session_state["current_tab"] = "Overview"
+if "collapse_upload_pane" not in st.session_state:
+    st.session_state["collapse_upload_pane"] = False
+
+NAV_ITEMS = [
+    ("Overview", "Overview"),
+    ("Pending & Nominations", "Pending & Nominations"),
+    ("Skill Analytics", "Skill Analytics"),
+    ("Unique Manpower", "Unique Manpower"),
+    ("Audit & Exceptions", "Audit & Exceptions"),
+    ("Exports", "Exports"),
+]
+
+_query_tab = st.query_params.get("tab")
+if _query_tab in [key for key, _ in NAV_ITEMS]:
+    st.session_state["current_tab"] = _query_tab
+
+_nav_html = ""
+for _tab_key, _tab_label in NAV_ITEMS:
+    _active = " active" if st.session_state["current_tab"] == _tab_key else ""
+    _nav_html += f'<div class="app-topnav-item{_active}" data-tab="{_tab_key}">{_tab_label}</div>'
+
+st.markdown(f"""
+<div class="app-topnav">
+    <div class="app-topnav-brand">
+        <div class="app-topnav-mark"></div>
+        <div>
+            <div class="app-topnav-title">MAHINDRA ENTERPRISE DASHBOARD</div>
+            <div class="app-topnav-subtitle">Training Analytics & Manpower Intelligence</div>
+        </div>
+    </div>
+    <nav class="app-topnav-items">
+        {_nav_html}
+    </nav>
+</div>
+""", unsafe_allow_html=True)
+
+_selected_tab = st.segmented_control(
+    "Dashboard sections",
+    options=[key for key, _ in NAV_ITEMS],
+    default=st.session_state["current_tab"],
+    key="topnav_tabs",
+    label_visibility="collapsed",
+)
+if _selected_tab and _selected_tab != st.session_state["current_tab"]:
+    st.session_state["current_tab"] = _selected_tab
+    st.query_params["tab"] = _selected_tab
+    st.rerun()
+
+if st.session_state.get("collapse_upload_pane"):
+    st.markdown("""
+    <style>
+        section[data-testid="stSidebar"] {
+            display: none !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] {
+            display: block !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -260,6 +469,17 @@ sidebar_result = render_sidebar()
 # PIPELINE EXECUTION — with real-time progress bar
 # ═══════════════════════════════════════════════════════════════════════════
 if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
+    st.session_state["collapse_upload_pane"] = True
+    st.markdown("""
+    <style>
+        section[data-testid="stSidebar"] {
+            display: none !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] {
+            display: block !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
     progress_bar = st.progress(0, text="Starting pipeline...")
     status_text = st.empty()
 
@@ -530,29 +750,21 @@ if st.session_state.get("pipeline_complete"):
         unsafe_allow_html=True,
     )
 
-    # ── Tab Routing ─────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "Overview",
-        "Pending & Nominations",
-        "Skill Analytics",
-        "Unique Manpower",
-        "Audit & Exceptions",
-        "Exports",
-    ])
-
-    with tab1:
+    # ── Top Navigation Routing ──────────────────────────────────────────────
+    page = st.session_state.get("current_tab", "Overview")
+    if page == "Overview":
         render_overview(df_filtered, kpis, st.session_state["global_filters"])
 
-    with tab2:
+    elif page == "Pending & Nominations":
         render_backlog(backlog_df, nomination_df, st.session_state["global_filters"])
 
-    with tab3:
+    elif page == "Skill Analytics":
         render_skill(df_filtered, st.session_state["global_filters"])
 
-    with tab4:
+    elif page == "Unique Manpower":
         render_manpower(df_filtered, st.session_state["global_filters"])
 
-    with tab5:
+    elif page == "Audit & Exceptions":
         unresolved_df = (
             unified_df[unified_df["Match_Confidence"] == "UNRESOLVED"]
             if "Match_Confidence" in unified_df.columns
@@ -560,7 +772,7 @@ if st.session_state.get("pipeline_complete"):
         )
         render_audit(df_filtered, duplicate_df, unresolved_df)
 
-    with tab6:
+    elif page == "Exports":
         render_export_tab(
             df_filtered, backlog_df, nomination_df, duplicate_df,
             st.session_state.get("audit_log", []),
