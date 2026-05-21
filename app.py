@@ -61,11 +61,11 @@ st.markdown(f"""
     :root {{
       --background: #ffffff;
       --foreground: #030213;
-      --primary: #030213;
+      --primary: {BRAND_RED};
       --muted: #ececf0;
       --muted-foreground: #717182;
       --accent: #e9ebef;
-      --destructive: #d4183d;
+      --destructive: {BRAND_RED};
       --input-background: #f3f3f5;
       --radius: 0.625rem;
     }}
@@ -79,15 +79,15 @@ st.markdown(f"""
         color: var(--foreground);
     }}
     /* Ensure all main-area text is dark */
-    section[data-testid="stMain"] .stMarkdown, 
-    section[data-testid="stMain"] p, 
-    section[data-testid="stMain"] span, 
+    section[data-testid="stMain"] .stMarkdown,
+    section[data-testid="stMain"] p,
+    section[data-testid="stMain"] span,
     section[data-testid="stMain"] label,
-    section[data-testid="stMain"] h1, 
-    section[data-testid="stMain"] h2, 
-    section[data-testid="stMain"] h3, 
-    section[data-testid="stMain"] h4, 
-    section[data-testid="stMain"] h5, 
+    section[data-testid="stMain"] h1,
+    section[data-testid="stMain"] h2,
+    section[data-testid="stMain"] h3,
+    section[data-testid="stMain"] h4,
+    section[data-testid="stMain"] h5,
     section[data-testid="stMain"] h6 {{
         color: var(--foreground) !important;
     }}
@@ -95,6 +95,7 @@ st.markdown(f"""
         background-color: var(--background);
         border-bottom: 1px solid var(--muted);
     }}
+    /* ── Tabs ──────────────────────────────────────────── */
     .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
     }}
@@ -108,15 +109,14 @@ st.markdown(f"""
     }}
     .stTabs [aria-selected="true"] {{
         background-color: transparent !important;
-        color: var(--primary) !important;
+        color: var(--foreground) !important;
         border-bottom: 2px solid var(--primary);
     }}
-    /* Sidebar: light background to match shadcn sidebar */
+    /* ── Sidebar ───────────────────────────────────────── */
     section[data-testid="stSidebar"] {{
         background-color: var(--background) !important;
         border-right: 1px solid var(--muted);
     }}
-    /* Catch every text node Streamlit renders inside the sidebar */
     section[data-testid="stSidebar"] label,
     section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] span,
@@ -130,7 +130,6 @@ st.markdown(f"""
     section[data-testid="stSidebar"] .stMarkdown span {{
         color: var(--foreground) !important;
     }}
-    /* Selectbox / multiselect control boxes */
     section[data-testid="stSidebar"] div[data-baseweb="select"] div,
     section[data-testid="stSidebar"] div[data-baseweb="select"] span,
     section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
@@ -139,27 +138,49 @@ st.markdown(f"""
         border-radius: var(--radius);
         border: none;
     }}
-    /* Buttons */
-    .stButton>button[kind="primary"] {{
-        background-color: var(--primary);
-        color: var(--background);
-        font-weight: 500;
+    /* ── Primary Buttons (brand red) ───────────────────── */
+    .stButton>button[kind="primary"],
+    section[data-testid="stSidebar"] .stButton>button[kind="primary"] {{
+        background-color: var(--primary) !important;
+        color: #ffffff !important;
+        font-weight: 600;
         border: none;
         border-radius: var(--radius);
         padding: 10px 20px;
     }}
-    .stButton>button[kind="primary"]:hover {{
-        background-color: var(--primary);
-        opacity: 0.9;
+    .stButton>button[kind="primary"]:hover,
+    section[data-testid="stSidebar"] .stButton>button[kind="primary"]:hover {{
+        background-color: #b8142f !important;
+        color: #ffffff !important;
     }}
+    /* ── Secondary Buttons (outline style) ─────────────── */
+    .stButton>button[kind="secondary"],
+    .stButton>button:not([kind]) {{
+        background-color: var(--background) !important;
+        color: var(--foreground) !important;
+        font-weight: 500;
+        border: 1px solid var(--muted) !important;
+        border-radius: var(--radius);
+        padding: 10px 20px;
+    }}
+    .stButton>button[kind="secondary"]:hover,
+    .stButton>button:not([kind]):hover {{
+        background-color: var(--accent) !important;
+        border-color: var(--muted-foreground) !important;
+    }}
+    /* ── Download Button ──────────────────────────────── */
     .stDownloadButton>button {{
-        background-color: var(--muted);
+        background-color: var(--background);
         color: var(--foreground);
         font-weight: 500;
-        border: 1px solid var(--muted-foreground);
+        border: 1px solid var(--muted);
         border-radius: var(--radius);
     }}
-    /* Metric values */
+    .stDownloadButton>button:hover {{
+        background-color: var(--accent);
+        border-color: var(--muted-foreground);
+    }}
+    /* ── Metrics ──────────────────────────────────────── */
     [data-testid="stMetricValue"] {{
         color: var(--foreground) !important;
         font-weight: 700;
@@ -168,16 +189,29 @@ st.markdown(f"""
         color: var(--muted-foreground) !important;
         font-weight: 500;
     }}
-    /* Progress bar */
+    /* ── Progress bar ─────────────────────────────────── */
     .stProgress > div > div > div > div {{
-        background-color: var(--destructive);
+        background-color: var(--primary);
     }}
-    /* Dataframes/Tables */
+    /* ── Dataframes / Tables ──────────────────────────── */
     [data-testid="stDataFrame"] {{
         background-color: var(--background);
         border-radius: var(--radius);
         border: 1px solid var(--muted);
         overflow: hidden;
+    }}
+    /* ── Spinner / Cache containers — no white box ───── */
+    .stSpinner, .stSpinner > div {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }}
+    [data-testid="stCachedStFunctionOutputContainer"],
+    [data-testid="stStaleElementContainer"] {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        opacity: 1 !important;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -472,7 +506,7 @@ if st.session_state.get("pipeline_complete"):
     with act_col1:
         # Generate Excel lazily — the buffer is prepared once per unique filter
         # state and cached by Streamlit so it does not block every render.
-        @st.cache_data(show_spinner="Preparing Excel report...")
+        @st.cache_data(show_spinner=False)
         def _get_excel_report(filter_key, _udf, _bdf, _ddf, _alog):
             """Cache-keyed Excel generation — reruns only when filters change."""
             return generate_excel_report(_udf, _bdf, _ddf, _alog)
