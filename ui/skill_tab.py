@@ -6,7 +6,7 @@ import io
 import streamlit as st
 import pandas as pd
 from config.constants import (
-    BRAND_RED, BRAND_CHARCOAL, SKILL_SCORE_MAP,
+    BRAND_CHARCOAL, SKILL_SCORE_MAP,
     COMPANY_SCALE_MAP, COMPANY_SCALE_LABELS, COMPANY_SCALE_COLORS,
 )
 from utils.formatting_utils import style_kpi_card, style_section_header

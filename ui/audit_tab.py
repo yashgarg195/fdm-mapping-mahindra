@@ -8,7 +8,7 @@ import io
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from config.constants import BRAND_RED, BRAND_CHARCOAL, CONFIDENCE_ORDER, CONFIDENCE_COLORS
+from config.constants import BRAND_CHARCOAL, CONFIDENCE_ORDER, CONFIDENCE_COLORS
 from utils.formatting_utils import style_section_header
 
 
@@ -30,7 +30,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 color_discrete_map=CONFIDENCE_COLORS,
             )
             fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig, key="conf_pie")
+            st.plotly_chart(fig, key="conf_bar")
 
         with chart2:
             c2_label, c2_btn = st.columns([3, 2])

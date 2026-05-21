@@ -1,6 +1,6 @@
 """
 Overview Tab — KPI summary cards + All-India graphical dashboard.
-Includes: national KPIs, trained/untrained/pending donut, FY trend,
+Includes: national KPIs, trained/untrained/pending stacked bar, FY trend,
 L1-L4 stacked bar, top-10 states by coverage, zone-wise breakdown.
 """
 import io
@@ -96,7 +96,7 @@ def render_overview(unified_df, kpis, filters):
         st.info("Run the pipeline to view graphical analytics.")
         return
 
-    # ── Section B: Trained / Untrained / Pending Donut ───────────────────────
+    # ── Section B: Trained / Untrained / Pending Stacked Bar ─────────────────
     _section("All-India Manpower Status")
 
     nat = national_summary(unified_df)
@@ -105,9 +105,9 @@ def render_overview(unified_df, kpis, filters):
     untrained_emp = nat.get("total_untrained", 0)
     pending_emp = nat.get("total_pending", 0)
 
-    donut_col, stat_col = st.columns([1, 1])
+    bar_col, stat_col = st.columns([1, 1])
 
-    with donut_col:
+    with bar_col:
         if total_emp > 0:
             fig_bar = go.Figure()
             fig_bar.add_trace(go.Bar(name="Trained", x=[trained_emp], y=["Status"], orientation='h', marker_color="#2E7D32"))

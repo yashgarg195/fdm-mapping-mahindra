@@ -2,7 +2,7 @@
 Sidebar Module — File uploaders and type assignment.
 """
 import streamlit as st
-from config.constants import BRAND_RED, BRAND_CHARCOAL
+from config.constants import BRAND_CHARCOAL
 
 
 def render_sidebar():
