@@ -55,7 +55,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         st.success("No exact duplicate records detected.")
 
     # ── Suspect Duplicates (Possible Matches) ───────────────────────────────
-    st.markdown("#### Suspect Duplicates (Possible Matches) ℹ️")
+    st.markdown("#### Suspect Duplicates (Possible Matches)")
     st.markdown(
         "<div style='font-size:0.9rem; color:#555; margin-bottom:15px;'>"
         "<b>What is a Possible Match?</b> A Possible Match occurs when the system identifies two records with different IDs but very similar names (e.g., 'Amit Kumar' and 'Ameet Kumar') working at the same location. These are flagged for your review to ensure they aren't the same person entered twice."

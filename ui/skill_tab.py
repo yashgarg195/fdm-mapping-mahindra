@@ -129,7 +129,7 @@ def render_skill(unified_df, filters):
         ), unsafe_allow_html=True)
 
     # ── Regression Table ────────────────────────────────────────────────────
-    st.markdown("#### :warning: Skill Regression Cases")
+    st.markdown("#### Skill Regression Cases")
     reg = regression_cases(df)
     if not reg.empty:
         st.markdown(f"**{len(reg)} records** where post-training score dropped below pre-training score")

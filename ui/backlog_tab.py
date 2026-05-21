@@ -54,7 +54,7 @@ def render_backlog(backlog_df, nomination_df, filters):
         st.markdown(style_kpi_card("AVG PENDING AGE", f"{avg_age:.1f} mo", "MONTHS WAITING", BRAND_CHARCOAL), unsafe_allow_html=True)
 
     # ── Nomination Priority Table ───────────────────────────────────────────
-    st.markdown("#### 🏆 Filtered Backlog & Nomination List")
+    st.markdown("#### Filtered Backlog & Nomination List")
     
     display_cols = [c for c in ["Nomination_Rank", "Star ID", "Name", "Designation",
                     "Dealer Code", "Dealer Name", "Zone", "State",
@@ -68,7 +68,7 @@ def render_backlog(backlog_df, nomination_df, filters):
     filtered_backlog[display_cols].to_excel(buf, index=False, engine="xlsxwriter")
     buf.seek(0)
     st.download_button(
-        "📥 Download Filtered Backlog (Excel)", buf,
+        "Download Filtered Backlog (Excel)", buf,
         file_name="MAHINDRA_FILTERED_BACKLOG.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )

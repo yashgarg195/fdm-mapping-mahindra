@@ -47,7 +47,6 @@ from utils.logging_utils import (
 # ═══════════════════════════════════════════════════════════════════════════
 st.set_page_config(
     page_title="Mahindra Training Analytics & Manpower Intelligence",
-    page_icon="🔴",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -221,7 +220,7 @@ sidebar_result = render_sidebar()
 # PIPELINE EXECUTION — with real-time progress bar
 # ═══════════════════════════════════════════════════════════════════════════
 if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
-    progress_bar = st.progress(0, text="🔴 Starting pipeline...")
+    progress_bar = st.progress(0, text="Starting pipeline...")
     status_text = st.empty()
 
     try:
@@ -240,7 +239,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 )
                 raw_df = load_file(uploaded_file)
                 if raw_df.empty:
-                    st.sidebar.error(f"❌ Failed to load: {uploaded_file.name}")
+                    st.sidebar.error(f"Failed to load: {uploaded_file.name}")
                     continue
 
                 cleaned = clean_dataframe(raw_df)
@@ -263,11 +262,11 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
 
                 progress_bar.progress(
                     int(20 * (i + 1) / len(files)),
-                    text=f"🔴 Loaded {uploaded_file.name} ({len(cleaned):,} rows)"
+                    text=f"Loaded {uploaded_file.name} ({len(cleaned):,} rows)"
                 )
 
             if not manpower_dfs and not training_dfs:
-                st.error("❌ No valid data files loaded. Please check file assignments.")
+                st.error("No valid data files loaded. Please check file assignments.")
                 progress_bar.empty()
                 status_text.empty()
                 st.stop()
@@ -279,7 +278,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             log_etl_event(len(training_df), len(training_df), 0, "Training")
 
             # ── Step 2: Deduplication (20% → 30%) ────────────────────────
-            progress_bar.progress(20, text="🔴 Step 2/5: Detecting duplicates...")
+            progress_bar.progress(20, text="Step 2/5: Detecting duplicates...")
             status_text.markdown(f"**Step 2/5:** Detecting duplicates in {len(manpower_df):,} manpower + {len(training_df):,} training rows...")
 
             manpower_clean, manpower_dups = detect_duplicate_manpower(manpower_df)
@@ -292,10 +291,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(all_duplicates),
             ))
 
-            progress_bar.progress(30, text=f"🔴 Found {len(all_duplicates)} duplicates")
+            progress_bar.progress(30, text=f"Found {len(all_duplicates)} duplicates")
 
             # ── Step 3: Identity Resolution (30% → 70%) ─────────────────
-            progress_bar.progress(30, text="🔴 Step 3/5: Running 7-pass identity resolution...")
+            progress_bar.progress(30, text="Step 3/5: Running 7-pass identity resolution...")
             status_text.markdown(f"**Step 3/5:** Running 7-pass identity resolution on {len(training_clean):,} training rows against {len(manpower_clean):,} roster entries...")
 
             if not training_clean.empty and not manpower_clean.empty:
@@ -324,10 +323,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(unified_df),
             ))
 
-            progress_bar.progress(70, text=f"🔴 Resolved {stats.get('matched_count', 0):,} identities")
+            progress_bar.progress(70, text=f"Resolved {stats.get('matched_count', 0):,} identities")
 
             # ── Step 4: Training Status & Backlog (70% → 85%) ────────────
-            progress_bar.progress(70, text="🔴 Step 4/5: Building backlog & nominations...")
+            progress_bar.progress(70, text="Step 4/5: Building backlog & nominations...")
             status_text.markdown(f"**Step 4/5:** Assigning training status and building rolling backlog...")
 
             unified_df["Training_Status"] = unified_df.apply(assign_training_status, axis=1)
@@ -340,10 +339,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(backlog_df),
             ))
 
-            progress_bar.progress(85, text=f"🔴 Backlog: {len(backlog_df):,} pending employees")
+            progress_bar.progress(85, text=f"Backlog: {len(backlog_df):,} pending employees")
 
             # ── Step 5: Compute KPIs & Persist (85% → 100%) ─────────────
-            progress_bar.progress(85, text="🔴 Step 5/5: Computing KPIs and generating dashboard...")
+            progress_bar.progress(85, text="Step 5/5: Computing KPIs and generating dashboard...")
             status_text.markdown(f"**Step 5/5:** Computing KPIs across {len(unified_df):,} unified records...")
 
             st.session_state["unified_df"] = unified_df
@@ -361,11 +360,11 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 f"Pipeline complete: {len(unified_df)} rows in unified master"
             )
 
-            progress_bar.progress(100, text="✅ Pipeline complete!")
+            progress_bar.progress(100, text="Pipeline complete!")
             status_text.empty()
 
         st.success(
-            f"✅ Pipeline complete! "
+            f"Pipeline complete! "
             f"{len(unified_df):,} rows processed | "
             f"{stats.get('matched_count', 0):,} matched | "
             f"{stats.get('unresolved_count', 0):,} unresolved | "
@@ -375,10 +374,9 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
     except Exception as e:
         progress_bar.empty()
         status_text.empty()
-        st.error(f"❌ Pipeline error: {e}")
+        st.error(f"Pipeline error: {e}")
         import traceback
         st.code(traceback.format_exc())
-
 # ═══════════════════════════════════════════════════════════════════════════
 # DASHBOARD TABS (only shown after pipeline runs)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -388,26 +386,88 @@ if st.session_state.get("pipeline_complete"):
     backlog_df = st.session_state["backlog_df"]
     nomination_df = st.session_state["nomination_df"]
     kpis = st.session_state["kpis"]
-    filters = sidebar_result.get("filters", {})
+    
+    # ── Main Area Filters ───────────────────────────────────────────────────
+    st.markdown("### Global Filters")
+    
+    if "global_filters" not in st.session_state:
+        st.session_state.global_filters = {}
 
-    # Apply filters to unified_df for display
+    with st.expander("Filter Options", expanded=True):
+        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+        
+        zones = sorted(unified_df["Zone"].dropna().unique()) if "Zone" in unified_df.columns else []
+        sel_zones = f_col1.multiselect("Zone", zones, default=st.session_state.global_filters.get("Zone", zones), key="temp_zone")
+        
+        available_states = []
+        if "State" in unified_df.columns:
+            if sel_zones:
+                available_states = sorted(unified_df[unified_df["Zone"].isin(sel_zones)]["State"].dropna().unique())
+            else:
+                available_states = sorted(unified_df["State"].dropna().unique())
+        
+        # Ensure default states are valid
+        def_states = [s for s in st.session_state.global_filters.get("State", available_states) if s in available_states]
+        sel_states = f_col2.multiselect("State", available_states, default=def_states, key="temp_state")
+        
+        desigs = sorted(unified_df["Designation"].dropna().unique()) if "Designation" in unified_df.columns else []
+        sel_desigs = f_col3.multiselect("Designation", desigs, default=st.session_state.global_filters.get("Designation", desigs), key="temp_desig")
+        
+        dealers = sorted(unified_df["Dealer Name"].dropna().unique()) if "Dealer Name" in unified_df.columns else []
+        sel_dealers = f_col4.multiselect("Dealer Name", dealers, default=st.session_state.global_filters.get("Dealer Name", []), key="temp_dealer")
+
+        btn_col1, btn_col2, _ = st.columns([2, 2, 8])
+        if btn_col1.button("Apply Filters", type="primary"):
+            st.session_state.global_filters = {
+                "Zone": sel_zones,
+                "State": sel_states,
+                "Designation": sel_desigs,
+                "Dealer Name": sel_dealers
+            }
+            st.rerun()
+            
+        if btn_col2.button("Clear Filters"):
+            st.session_state.global_filters = {}
+            for k in ["temp_zone", "temp_state", "temp_desig", "temp_dealer"]:
+                if k in st.session_state:
+                    del st.session_state[k]
+            st.rerun()
+
+    filters = st.session_state.global_filters
     df_filtered = apply_filters(unified_df, filters)
 
-    # ── Row count info pill ──────────────────────────────────────────────────
-    st.markdown(
-        f"<div style='padding:8px 14px; background:{BRAND_LIGHT_GREY}; border-radius:6px; "
-        f"display:inline-block; font-size:0.85rem; color:{BRAND_CHARCOAL}; margin-bottom:8px;'>"
-        f"📊 Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows (filters applied)</div>",
-        unsafe_allow_html=True,
-    )
+    # ── Top Action Bar ──────────────────────────────────────────────────────
+    st.markdown("---")
+    act_col1, act_col2 = st.columns([4, 8])
+    with act_col1:
+        with st.spinner("Preparing Excel report..."):
+            excel_buf = generate_excel_report(
+                df_filtered, backlog_df, duplicate_df,
+                st.session_state.get("audit_log", []),
+            )
+        st.download_button(
+            "Download Full Report (8 Sheets)",
+            excel_buf,
+            file_name="MAHINDRA_TRAINING_ANALYTICS_REPORT.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    with act_col2:
+        st.markdown(
+            f"<div style='padding:8px 14px; background:var(--muted); border-radius:6px; "
+            f"display:inline-block; font-size:0.85rem; color:var(--muted-foreground);'>"
+            f"Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows (filters applied)</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("---")
 
     # ── Tab Routing ─────────────────────────────────────────────────────────
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Overview",
-        "📋 Pending & Nominations",
-        "🎯 Skill Analytics",
-        "👥 Unique Manpower",
-        "🔍 Audit & Exceptions",
+        "Overview",
+        "Pending & Nominations",
+        "Skill Analytics",
+        "Unique Manpower",
+        "Audit & Exceptions",
     ])
 
     with tab1:
@@ -426,21 +486,6 @@ if st.session_state.get("pipeline_complete"):
     with tab5:
         unresolved_df = unified_df[unified_df["Match_Confidence"] == "UNRESOLVED"] if "Match_Confidence" in unified_df.columns else pd.DataFrame()
         render_audit(df_filtered, duplicate_df, unresolved_df)
-
-    # ── Excel Download (deferred to bottom so it never blocks tab render) ───
-    st.markdown("---")
-    with st.spinner("Preparing Excel report..."):
-        excel_buf = generate_excel_report(
-            df_filtered, backlog_df, duplicate_df,
-            st.session_state.get("audit_log", []),
-        )
-    st.download_button(
-        "📥 Download Full Report (8 Sheets)",
-        excel_buf,
-        file_name="MAHINDRA_TRAINING_ANALYTICS_REPORT.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=False,
-    )
 
 else:
     # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────

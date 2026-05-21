@@ -1,18 +1,17 @@
 """
-Sidebar Module — File uploaders, type assignment, and filter controls.
+Sidebar Module — File uploaders and type assignment.
 """
 import streamlit as st
-from config.constants import BRAND_RED, ZONE_STATE_MAP
+from config.constants import BRAND_RED
 
 
 def render_sidebar():
-    """Render the sidebar with file uploaders, type assignments, and filters.
-    Returns dict with uploaded_files, file_assignments, filters, and run_pipeline flag.
+    """Render the sidebar with file uploaders and type assignments.
+    Returns dict with uploaded_files, file_assignments, and run_pipeline flag.
     """
     result = {
         "uploaded_files": [],
         "file_assignments": {},
-        "filters": {},
         "run_pipeline": False,
     }
 
@@ -24,7 +23,7 @@ def render_sidebar():
     st.sidebar.markdown("---")
 
     # ── File Upload Section ─────────────────────────────────────────────────
-    st.sidebar.markdown("### 📁 Upload Data Files")
+    st.sidebar.markdown("### Upload Data Files")
     file_types = ["Manpower Roster", "Training Data", "Additional Training Data", "Other"]
 
     for i in range(1, 5):
@@ -49,61 +48,15 @@ def render_sidebar():
     # ── Run Pipeline Button ─────────────────────────────────────────────────
     if result["uploaded_files"]:
         result["run_pipeline"] = st.sidebar.button(
-            "🔴 Run Pipeline",
+            "Run Pipeline",
             type="primary",
         )
-
-    # ── Filter Controls (only shown after pipeline runs) ────────────────────
-    if st.session_state.get("pipeline_complete", False):
-        st.sidebar.markdown("---")
-        st.sidebar.markdown("### 🔍 Filters")
-
-        unified_df = st.session_state.get("unified_df")
-        if unified_df is not None and not unified_df.empty:
-            filters = {}
-
-            # Zone filter
-            if "Zone" in unified_df.columns:
-                zones = sorted(unified_df["Zone"].dropna().unique())
-                filters["Zone"] = st.sidebar.multiselect("Zone", zones, default=zones, key="filter_zone")
-
-            # State filter (filtered by zone)
-            if "State" in unified_df.columns:
-                if filters.get("Zone"):
-                    available_states = sorted(
-                        unified_df[unified_df["Zone"].isin(filters["Zone"])]["State"].dropna().unique()
-                    )
-                else:
-                    available_states = sorted(unified_df["State"].dropna().unique())
-                filters["State"] = st.sidebar.multiselect("State", available_states, default=available_states, key="filter_state")
-
-            # Designation filter
-            if "Designation" in unified_df.columns:
-                desigs = sorted(unified_df["Designation"].dropna().unique())
-                filters["Designation"] = st.sidebar.multiselect("Designation", desigs, default=desigs, key="filter_desig")
-
-            # Dealer filter
-            if "Dealer Name" in unified_df.columns:
-                dealers = sorted(unified_df["Dealer Name"].dropna().unique())
-                filters["Dealer Name"] = st.sidebar.multiselect("Dealer Name", dealers, default=[], key="filter_dealer")
-
-            # Training year filter
-            if "Training year" in unified_df.columns:
-                fys = sorted(unified_df["Training year"].dropna().unique())
-                filters["Training year"] = st.sidebar.multiselect("Training Year", fys, default=fys, key="filter_fy")
-
-            # Skill level filter
-            if "SKILL LEVEL - POST" in unified_df.columns:
-                skills = sorted(unified_df["SKILL LEVEL - POST"].dropna().unique())
-                filters["SKILL LEVEL - POST"] = st.sidebar.multiselect("Skill Level (Post)", skills, default=skills, key="filter_skill")
-
-            result["filters"] = filters
 
     return result
 
 
 def apply_filters(df, filters):
-    """Apply sidebar filter selections to a DataFrame.
+    """Apply filter selections to a DataFrame.
     Returns filtered DataFrame. Never mutates the original.
     """
     if df is None or df.empty or not filters:
