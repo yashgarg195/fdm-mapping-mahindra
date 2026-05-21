@@ -74,6 +74,7 @@ st.markdown(f"""
       --radius: 6px;
       --brand-red: {BRAND_RED};
       --brand-charcoal: {BRAND_CHARCOAL};
+      --topnav-brand-width: 480px;
     }}
     @media (prefers-color-scheme: dark) {{
       :root {{
@@ -96,7 +97,7 @@ st.markdown(f"""
         color: var(--foreground);
     }}
     .block-container {{
-        padding-top: 5.25rem !important;
+        padding-top: 3.7rem !important;
         padding-bottom: 2.5rem !important;
     }}
     p, li, label, .stMarkdown, .stText {{
@@ -153,10 +154,14 @@ st.markdown(f"""
         display: flex;
         align-items: center;
         gap: 12px;
-        min-width: 318px;
+        flex: 0 0 var(--topnav-brand-width);
+        width: var(--topnav-brand-width);
+        min-width: var(--topnav-brand-width);
+        max-width: var(--topnav-brand-width);
         padding: 0 22px;
         border-right: 1px solid #E8E8EC;
         background: var(--background);
+        overflow: hidden;
     }}
     .app-topnav-mark {{
         width: 3px;
@@ -207,7 +212,7 @@ st.markdown(f"""
     .st-key-topnav_tabs {{
         position: fixed !important;
         top: 0 !important;
-        left: 318px !important;
+        left: var(--topnav-brand-width) !important;
         right: 0 !important;
         height: 64px !important;
         z-index: 1000000 !important;
@@ -431,8 +436,16 @@ st.markdown(f"""
         top: 78px !important;
         right: 24px !important;
         width: auto !important;
-        height: auto !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
         z-index: 1000000 !important;
+    }}
+    .st-key-filter_popover > div {{
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
     }}
     .st-key-filter_popover [data-testid="stPopover"] {{
         position: fixed !important;
@@ -443,6 +456,35 @@ st.markdown(f"""
         width: auto !important;
         height: auto !important;
         z-index: 1000000 !important;
+    }}
+    .dashboard-intro {{
+        width: calc(100% - 240px);
+        margin-top: -8px;
+        margin-right: 240px;
+        margin-bottom: 18px;
+    }}
+    .dashboard-intro-summary {{
+        width: 100%;
+        padding: 12px 18px;
+        background: #F7F7F9;
+        border: 1px solid #E8E8EC;
+        border-left: 4px solid {BRAND_CHARCOAL};
+        border-radius: 10px;
+        font-size: 12px;
+        color: {BRAND_CHARCOAL};
+        line-height: 1.45;
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+    }}
+    @media (max-width: 1100px) {{
+        .dashboard-intro {{
+            width: 100%;
+            margin-right: 0;
+        }}
+        .dashboard-intro-summary {{
+            display: block;
+        }}
     }}
     .st-key-filter_popover [data-testid="stPopoverButton"] {{
         position: static !important;
@@ -728,7 +770,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
 # ═══════════════════════════════════════════════════════════════════════════
 if st.session_state.get("pipeline_complete"):
     if "pipeline_success_message" in st.session_state and st.session_state["pipeline_success_message"]:
-        st.success(st.session_state["pipeline_success_message"])
+        st.toast(st.session_state["pipeline_success_message"], icon=":material/check_circle:")
         del st.session_state["pipeline_success_message"]
     unified_df = st.session_state["unified_df"]
     duplicate_df = st.session_state["duplicate_df"]
@@ -848,24 +890,26 @@ if st.session_state.get("pipeline_complete"):
 
     # ── Compact filter status pill ──────────────────────────────────────────
     filter_label = "filters applied" if active_filters else "no filters active — showing all data"
-    st.markdown(
-        f"<div style='padding:8px 14px; background:#F7F7F9; border: 1px solid #E8E8EC; border-radius:6px; "
-        f"display:inline-block; font-size:11px; color:#6B6B8D;'>"
-        f"Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows &nbsp;·&nbsp; {filter_label}</div>",
-        unsafe_allow_html=True,
-    )
     # ── Pipeline Math Summary Pill ──────────────────────────────────────────
     raw_train = st.session_state.get("raw_training_count", 0)
     raw_rost = st.session_state.get("raw_roster_count", 0)
     total_raw = raw_train + raw_rost
     st.markdown(
-        f"<div style='padding:12px 16px; background:#F7F7F9; border: 1px solid #E8E8EC; border-radius:8px; "
-        f"font-size:11px; color:{BRAND_CHARCOAL}; margin-bottom:15px; border-left: 3px solid {BRAND_CHARCOAL};'>"
-        f"<b>Data Pipeline Summary:</b> Ingested <b>{total_raw:,}</b> raw rows "
-        f"({raw_train:,} training + {raw_rost:,} roster) &rarr; "
-        f"Removed <b>{len(duplicate_df):,}</b> exact duplicates &rarr; "
-        f"Resolved into <b>{len(unified_df):,}</b> unique master records."
-        f"</div>",
+        f"""
+        <div class='dashboard-intro'>
+            <div class='dashboard-intro-summary'>
+                <span style='color:#6B6B8D;'>
+                    Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows
+                    &nbsp;·&nbsp; {filter_label}
+                </span>
+                <span style='color:#C9CCD8;'>&nbsp;|&nbsp;</span>
+                <b>Data Pipeline Summary:</b> Ingested <b>{total_raw:,}</b> raw rows
+                ({raw_train:,} training + {raw_rost:,} roster) &rarr;
+                Removed <b>{len(duplicate_df):,}</b> exact duplicates &rarr;
+                Resolved into <b>{len(unified_df):,}</b> unique master records.
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 

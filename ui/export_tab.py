@@ -18,7 +18,7 @@ from reports_export.excel_export import (
 )
 
 
-def _download_row(label, buf, filename, description=""):
+def _download_row(label, buf, filename, description="", show_divider=True):
     """Render a single styled download row."""
     col_desc, col_btn = st.columns([5, 2])
     with col_desc:
@@ -37,10 +37,11 @@ def _download_row(label, buf, filename, description=""):
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key=f"dl_{filename}",
         )
-    st.markdown(
-        "<div style='border-bottom:1px solid #ececf0; margin:4px 0 8px 0;'></div>",
-        unsafe_allow_html=True,
-    )
+    if show_divider:
+        st.markdown(
+            "<div style='border-bottom:1px solid #ececf0; margin:4px 0 8px 0;'></div>",
+            unsafe_allow_html=True,
+        )
 
 
 def _section_header(title, subtitle=""):
@@ -95,6 +96,7 @@ def render_export_tab(unified_df, backlog_df, nomination_df, duplicate_df, audit
         full_buf,
         "MAHINDRA_TRAINING_ANALYTICS_REPORT.xlsx",
         "Unified Master · Backlog · Duplicates · Confidence · Data Quality · Skill · Nominations · Audit · Technician Profile",
+        show_divider=False,
     )
 
     # ── Section B: Per-Dashboard Downloads ───────────────────────────────────
