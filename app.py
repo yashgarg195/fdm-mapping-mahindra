@@ -132,15 +132,13 @@ st.markdown(f"""
     }}
     [data-testid="collapsedControl"],
     [data-testid="stSidebarCollapsedControl"],
-    [data-testid="stExpandSidebarButton"],
-    [data-testid="stSidebarCollapseButton"] {{
+    [data-testid="stExpandSidebarButton"] {{
         top: 76px !important;
         left: 16px !important;
         position: fixed !important;
         z-index: 1000002 !important;
     }}
     [data-testid="stExpandSidebarButton"] button,
-    [data-testid="stSidebarCollapseButton"] button,
     [data-testid="stSidebarCollapsedControl"] button {{
         background: var(--background) !important;
         border-radius: 999px !important;
@@ -1024,38 +1022,46 @@ if "has_expanded_on_load" not in st.session_state:
     )
 
 if st.session_state.pop("collapse_sidebar_now", False):
+    import uuid
     import streamlit.components.v1 as components
     components.html(
-        """
+        f"""
         <script>
-        const collapseSidebar = () => {
-            try {
+        // UUID to force iframe rerender: {uuid.uuid4()}
+        const collapseSidebar = () => {{
+            try {{
                 const doc = window.parent.document;
                 const sidebar = doc.querySelector('[data-testid="stSidebar"]');
-                if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
+                if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {{
                     return true; // Already collapsed
-                }
+                }}
                 
-                const collapseBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"], [data-testid="baseButton-headerNoPadding"], [data-testid="baseButton-header"], button[aria-label="Collapse sidebar"], button[aria-label="Close"]');
+                const buttons = Array.from(doc.querySelectorAll('button'));
+                let collapseBtn = buttons.find(b => 
+                    b.getAttribute('aria-label') === 'Collapse sidebar' || 
+                    b.getAttribute('aria-label') === 'Close' || 
+                    b.getAttribute('data-testid') === 'stSidebarCollapseButton' ||
+                    b.closest('[data-testid="stSidebarCollapseButton"]')
+                );
                 
-                if (collapseBtn) {
+                if (collapseBtn) {{
+                    collapseBtn.dispatchEvent(new MouseEvent('mouseover', {{ bubbles: true }}));
+                    collapseBtn.dispatchEvent(new MouseEvent('mouseenter', {{ bubbles: true }}));
                     collapseBtn.click();
-                    collapseBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window.parent }));
+                    collapseBtn.dispatchEvent(new MouseEvent('click', {{ bubbles: true, cancelable: true, view: window.parent }}));
                     return true;
-                }
-            } catch (e) {
-                // Ignore cross origin errors if any
-            }
+                }}
+            }} catch (e) {{}}
             return false;
-        };
+        }};
         
         let retries = 0;
-        const interval = setInterval(() => {
-            if (collapseSidebar() || retries > 50) {
+        const interval = setInterval(() => {{
+            if (collapseSidebar() || retries > 50) {{
                 clearInterval(interval);
-            }
+            }}
             retries++;
-        }, 100);
+        }}, 100);
         </script>
         """,
         height=1, width=1
