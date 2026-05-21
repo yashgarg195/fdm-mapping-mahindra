@@ -78,19 +78,6 @@ st.markdown(f"""
       --topnav-brand-width: 480px;
       --border: #E8E8EC;
     }}
-    @media (prefers-color-scheme: dark) {{
-      :root {{
-        --background: #111118;
-        --foreground: #F7F7F9;
-        --primary: #F7F7F9;
-        --muted: #252532;
-        --muted-foreground: #B7B7C8;
-        --accent: #1B1B26;
-        --input-background: #111118;
-        --brand-charcoal: #F7F7F9;
-        --border: #3A3A4A;
-      }}
-    }}
 
     html, body, [class*="css"] {{
         font-family: 'Inter', 'Segoe UI', sans-serif;
@@ -281,33 +268,7 @@ st.markdown(f"""
         color: var(--brand-charcoal);
         background: var(--background);
     }}
-    @media (prefers-color-scheme: dark) {{
-        .app-topnav,
-        .app-topnav-brand {{
-            border-color: #2D2D3A;
-        }}
-        .app-topnav-title,
-        .app-topnav-item:hover,
-        .app-topnav-item.active {{
-            color: var(--foreground);
-        }}
-        .app-topnav-item,
-        .st-key-topnav_tabs [role="radiogroup"] > button {{
-            border-color: #2D2D3A;
-        }}
-        .st-key-topnav_tabs [role="radiogroup"] > button:hover,
-        .st-key-topnav_tabs [role="radiogroup"] > button[kind="segmented_controlActive"] {{
-            color: var(--foreground) !important;
-        }}
-        header[data-testid="stHeader"] {{
-            background-color: transparent !important;
-            border-bottom: none !important;
-        }}
-        section[data-testid="stSidebar"] {{
-            background-color: var(--background) !important;
-            border-right-color: var(--muted);
-        }}
-    }}
+
     .app-topnav-item.active::after {{
         content: "";
         position: absolute;
