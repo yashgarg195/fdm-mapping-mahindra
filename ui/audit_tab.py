@@ -81,10 +81,51 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
 
         if not suspects.empty:
             st.markdown(f"**{len(suspects)} suspect duplicate records** — different Star IDs, very similar names at same dealer")
-            display_cols = [c for c in ["Star ID", "Name", "Dealer Code", "Dealer Name",
-                            "DATA_QUALITY_STATUS", "DATA_QUALITY_REASON",
-                            "CROSS_ID_DUPLICATE_NOTE"] if c in suspects.columns]
-            st.dataframe(suspects[display_cols] if display_cols else suspects, height=300)
+
+            # ── Enrich with suspected match's identity ───────────────────────
+            # CROSS_ID_DUPLICATE_NOTE contains "Similar to Star ID <SID> (fuzzy=xx%)"
+            # Parse the suspected Star ID and look up their details in unified_df.
+            if "CROSS_ID_DUPLICATE_NOTE" in suspects.columns and "Star ID" in unified_df.columns:
+                import re
+
+                def _extract_sid(note):
+                    """Extract the first Star ID mentioned in the note string."""
+                    if not note or pd.isna(note):
+                        return None
+                    m = re.search(r"Similar to Star ID\s+(\S+)", str(note))
+                    return m.group(1).strip(";, ") if m else None
+
+                # Build lookup: Star ID → (Name, Dealer Code, Dealer Name) from unified_df
+                _lookup_cols = [c for c in ["Star ID", "Name", "Dealer Code", "Dealer Name"]
+                                if c in unified_df.columns]
+                _lookup = (
+                    unified_df[_lookup_cols]
+                    .drop_duplicates(subset=["Star ID"])
+                    .set_index("Star ID")
+                )
+
+                suspects = suspects.copy()
+                suspects["_match_sid"] = suspects["CROSS_ID_DUPLICATE_NOTE"].apply(_extract_sid)
+
+                suspects["Suspected_Match_StarID"] = suspects["_match_sid"]
+                suspects["Suspected_Match_Name"] = suspects["_match_sid"].map(
+                    _lookup["Name"] if "Name" in _lookup.columns else pd.Series(dtype=str)
+                )
+                if "Dealer Code" in _lookup.columns:
+                    suspects["Suspected_Match_Dealer_Code"] = suspects["_match_sid"].map(_lookup["Dealer Code"])
+                if "Dealer Name" in _lookup.columns:
+                    suspects["Suspected_Match_Dealer_Name"] = suspects["_match_sid"].map(_lookup["Dealer Name"])
+
+                suspects.drop(columns=["_match_sid"], inplace=True)
+
+            display_cols = [c for c in [
+                "Star ID", "Name", "Dealer Code", "Dealer Name",
+                "DATA_QUALITY_STATUS", "CROSS_ID_DUPLICATE_NOTE",
+                "Suspected_Match_StarID", "Suspected_Match_Name",
+                "Suspected_Match_Dealer_Code", "Suspected_Match_Dealer_Name",
+            ] if c in suspects.columns]
+            st.dataframe(suspects[display_cols] if display_cols else suspects, height=350, use_container_width=True)
+
         else:
             st.success("No possible matches detected.")
     else:
