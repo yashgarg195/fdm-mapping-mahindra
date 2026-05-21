@@ -392,15 +392,16 @@ st.markdown(f"""
     }}
     /* ── Download Button ──────────────────────────────── */
     .stDownloadButton>button {{
-        background-color: var(--background);
-        color: var(--foreground);
-        font-weight: 500;
-        border: 1px solid var(--muted);
+        background-color: #EFF6FF !important;
+        color: #1D4ED8 !important;
+        font-weight: 600;
+        border: 1px solid #BFDBFE !important;
         border-radius: var(--radius);
     }}
     .stDownloadButton>button:hover {{
-        background-color: var(--accent);
-        border-color: var(--muted-foreground);
+        background-color: #DBEAFE !important;
+        border-color: #60A5FA !important;
+        color: #1E3A8A !important;
     }}
     /* ── Metrics ──────────────────────────────────────── */
     [data-testid="stMetricValue"] {{
