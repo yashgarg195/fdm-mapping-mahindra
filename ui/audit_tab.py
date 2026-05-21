@@ -4,6 +4,7 @@ cross-ID suspects, data quality issues.
 FIXED: Shows cross-ID duplicate suspects, training status breakdown,
 vectorized operations for speed.
 """
+import io
 import streamlit as st
 import plotly.express as px
 import pandas as pd
@@ -32,6 +33,17 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
             st.plotly_chart(fig, key="conf_pie")
 
         with chart2:
+            c2_label, c2_btn = st.columns([3, 2])
+            with c2_btn:
+                _buf_conf = io.BytesIO()
+                conf_counts.to_excel(_buf_conf, index=False, engine="xlsxwriter")
+                _buf_conf.seek(0)
+                st.download_button(
+                    "Export Table", _buf_conf,
+                    file_name="MAHINDRA_CONFIDENCE_DISTRIBUTION.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="audit_conf_export",
+                )
             st.dataframe(conf_counts, height=200)
 
         # Training Status Breakdown
@@ -40,6 +52,17 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
             status_counts = unified_df["Training_Status"].value_counts().reset_index()
             status_counts.columns = ["Status", "Count"]
             status_counts["Pct"] = (status_counts["Count"] / max(status_counts["Count"].sum(), 1) * 100).round(1)
+            ts_label, ts_btn = st.columns([6, 2])
+            with ts_btn:
+                _buf_ts = io.BytesIO()
+                status_counts.to_excel(_buf_ts, index=False, engine="xlsxwriter")
+                _buf_ts.seek(0)
+                st.download_button(
+                    "Export Table", _buf_ts,
+                    file_name="MAHINDRA_TRAINING_STATUS.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="audit_ts_export",
+                )
             st.dataframe(status_counts, height=200)
     else:
         st.info("No confidence data available.")
@@ -47,10 +70,23 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
     # ── Duplicate Log ───────────────────────────────────────────────────────
     st.markdown("#### Duplicate Log")
     if duplicate_df is not None and not duplicate_df.empty:
-        st.markdown(f"**{len(duplicate_df)} duplicate records detected** (flagged, not deleted)")
+        dup_label, dup_btn = st.columns([6, 2])
+        with dup_label:
+            st.markdown(f"**{len(duplicate_df)} duplicate records detected** (flagged, not deleted)")
         display_cols = [c for c in ["Star ID", "Name", "Dealer Code", "Dealer Name",
                         "DATA_QUALITY_STATUS", "DATA_QUALITY_REASON"] if c in duplicate_df.columns]
-        st.dataframe(duplicate_df[display_cols] if display_cols else duplicate_df, height=300)
+        dup_display = duplicate_df[display_cols] if display_cols else duplicate_df
+        with dup_btn:
+            _buf_dup = io.BytesIO()
+            dup_display.to_excel(_buf_dup, index=False, engine="xlsxwriter")
+            _buf_dup.seek(0)
+            st.download_button(
+                "Export Table", _buf_dup,
+                file_name="MAHINDRA_DUPLICATE_LOG.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="audit_dup_export",
+            )
+        st.dataframe(dup_display, height=300, use_container_width=True)
     else:
         st.success("No exact duplicate records detected.")
 
@@ -124,7 +160,20 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 "Suspected_Match_StarID", "Suspected_Match_Name",
                 "Suspected_Match_Dealer_Code", "Suspected_Match_Dealer_Name",
             ] if c in suspects.columns]
-            st.dataframe(suspects[display_cols] if display_cols else suspects, height=350, use_container_width=True)
+            suspects_display = suspects[display_cols] if display_cols else suspects
+
+            sus_label, sus_btn = st.columns([6, 2])
+            with sus_btn:
+                _buf_sus = io.BytesIO()
+                suspects_display.to_excel(_buf_sus, index=False, engine="xlsxwriter")
+                _buf_sus.seek(0)
+                st.download_button(
+                    "Export Table", _buf_sus,
+                    file_name="MAHINDRA_SUSPECT_DUPLICATES.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="audit_suspect_export",
+                )
+            st.dataframe(suspects_display, height=350, use_container_width=True)
 
         else:
             st.success("No possible matches detected.")
@@ -134,11 +183,24 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
     # ── Unresolved Queue ────────────────────────────────────────────────────
     st.markdown("#### Unresolved Identity Queue (PENDING_MAPPING_REVIEW)")
     if unresolved_df is not None and not unresolved_df.empty:
-        st.markdown(f"**{len(unresolved_df)} unresolved records** — excluded from official KPIs")
+        ur_label, ur_btn = st.columns([6, 2])
+        with ur_label:
+            st.markdown(f"**{len(unresolved_df)} unresolved records** — excluded from official KPIs")
         display_cols = [c for c in ["Star ID", "Name", "Designation", "Dealer Code",
                         "Dealer Name", "Match_Method", "Fuzzy_Score", "Phonetic_Score"]
                         if c in unresolved_df.columns]
-        st.dataframe(unresolved_df[display_cols] if display_cols else unresolved_df, height=300)
+        ur_display = unresolved_df[display_cols] if display_cols else unresolved_df
+        with ur_btn:
+            _buf_ur = io.BytesIO()
+            ur_display.to_excel(_buf_ur, index=False, engine="xlsxwriter")
+            _buf_ur.seek(0)
+            st.download_button(
+                "Export Table", _buf_ur,
+                file_name="MAHINDRA_UNRESOLVED_QUEUE.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="audit_unresolved_export",
+            )
+        st.dataframe(ur_display, height=300, use_container_width=True)
     else:
         st.success("No unresolved records. All identities mapped.")
 

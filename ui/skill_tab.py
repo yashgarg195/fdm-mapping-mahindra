@@ -2,6 +2,7 @@
 Skill Tab — Skill distribution, regression table, uplift heatmap.
 Scores displayed on company-standard 1–5 scale with visual legend.
 """
+import io
 import streamlit as st
 import pandas as pd
 from config.constants import (
@@ -93,8 +94,20 @@ def render_skill(unified_df, filters):
     st.markdown("#### Skill Regression Cases")
     reg = regression_cases(df)
     if not reg.empty:
-        st.markdown(f"**{len(reg)} records** where post-training score dropped below pre-training score")
-        st.dataframe(reg, height=300)
+        reg_label_col, reg_btn_col = st.columns([6, 2])
+        with reg_label_col:
+            st.markdown(f"**{len(reg)} records** where post-training score dropped below pre-training score")
+        with reg_btn_col:
+            _buf = io.BytesIO()
+            reg.to_excel(_buf, index=False, engine="xlsxwriter")
+            _buf.seek(0)
+            st.download_button(
+                "Export Table", _buf,
+                file_name="MAHINDRA_SKILL_REGRESSIONS.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="skill_reg_export",
+            )
+        st.dataframe(reg, height=300, use_container_width=True)
     else:
         st.success("No skill regressions detected.")
 
@@ -105,4 +118,17 @@ def render_skill(unified_df, filters):
         (trained["post_score"] >= 0) &
         (trained["post_score"] == trained["pre_score"])
     ]
-    st.markdown(f"**Non-improving manpower:** {len(non_improving)} employees attended training with no skill change.")
+    ni_label_col, ni_btn_col = st.columns([6, 2])
+    with ni_label_col:
+        st.markdown(f"**Non-improving manpower:** {len(non_improving)} employees attended training with no skill change.")
+    if not non_improving.empty:
+        with ni_btn_col:
+            _buf2 = io.BytesIO()
+            non_improving.to_excel(_buf2, index=False, engine="xlsxwriter")
+            _buf2.seek(0)
+            st.download_button(
+                "Export Table", _buf2,
+                file_name="MAHINDRA_NON_IMPROVING.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="skill_ni_export",
+            )

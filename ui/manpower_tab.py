@@ -1,6 +1,7 @@
 """
 Manpower Tab — State/zone manpower tables, unique headcount, unresolved count.
 """
+import io
 import streamlit as st
 import plotly.express as px
 from config.constants import BRAND_RED, BRAND_CHARCOAL
@@ -35,7 +36,21 @@ def render_manpower(unified_df, filters):
     st.markdown("#### State-wise Manpower Breakdown")
     state_df = state_manpower_table(unified_df)
     if not state_df.empty:
-        st.dataframe(state_df.sort_values("Total_Employees", ascending=False), height=400)
+        state_sorted = state_df.sort_values("Total_Employees", ascending=False)
+        s_label, s_btn = st.columns([6, 2])
+        with s_label:
+            st.markdown(f"**{len(state_sorted)} states**")
+        with s_btn:
+            _buf = io.BytesIO()
+            state_sorted.to_excel(_buf, index=False, engine="xlsxwriter")
+            _buf.seek(0)
+            st.download_button(
+                "Export Table", _buf,
+                file_name="MAHINDRA_STATE_MANPOWER.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="manpower_state_export",
+            )
+        st.dataframe(state_sorted, height=400, use_container_width=True)
     else:
         st.info("No state-level data available.")
 
@@ -50,6 +65,22 @@ def render_manpower(unified_df, filters):
         )
         fig.update_layout(plot_bgcolor="white", margin=dict(t=20, b=20, l=20, r=20), yaxis_title="Employees", legend_title="")
         st.plotly_chart(fig, key="zone_manpower_chart")
+
+        # Zone data table with export
+        with st.expander("Zone-wise Data Table", expanded=False):
+            z_label, z_btn = st.columns([6, 2])
+            with z_btn:
+                _buf2 = io.BytesIO()
+                zone_df.to_excel(_buf2, index=False, engine="xlsxwriter")
+                _buf2.seek(0)
+                st.download_button(
+                    "Export Table", _buf2,
+                    file_name="MAHINDRA_ZONE_MANPOWER.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="manpower_zone_export",
+                )
+            st.dataframe(zone_df, use_container_width=True)
     else:
         st.info("No zone-level data available.")
+
 

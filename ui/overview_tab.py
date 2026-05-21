@@ -3,6 +3,7 @@ Overview Tab — KPI summary cards + All-India graphical dashboard.
 Includes: national KPIs, trained/untrained/pending donut, FY trend,
 L1-L4 stacked bar, top-10 states by coverage, zone-wise breakdown.
 """
+import io
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
@@ -266,6 +267,17 @@ def render_overview(unified_df, kpis, filters):
 
         # Zone tabular summary
         with st.expander("Zone-wise Data Table", expanded=False):
+            _z_label, _z_btn = st.columns([6, 2])
+            with _z_btn:
+                _buf_z = io.BytesIO()
+                zone_df.to_excel(_buf_z, index=False, engine="xlsxwriter")
+                _buf_z.seek(0)
+                st.download_button(
+                    "Export Table", _buf_z,
+                    file_name="MAHINDRA_OVERVIEW_ZONE_DATA.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="overview_zone_export",
+                )
             st.dataframe(zone_df, use_container_width=True)
     else:
         st.info("No zone-level data available (Zone column missing in dataset).")
@@ -293,6 +305,17 @@ def render_overview(unified_df, kpis, filters):
             )
             st.plotly_chart(fig_states, use_container_width=True, key="state_coverage_chart")
         with scol2:
+            _st_label, _st_btn = st.columns([3, 2])
+            with _st_btn:
+                _buf_st = io.BytesIO()
+                state_df.to_excel(_buf_st, index=False, engine="xlsxwriter")
+                _buf_st.seek(0)
+                st.download_button(
+                    "Export Table", _buf_st,
+                    file_name="MAHINDRA_OVERVIEW_STATE_COVERAGE.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="overview_state_export",
+                )
             st.dataframe(
                 state_df.rename(columns={"Coverage_Pct": "Coverage %"}),
                 use_container_width=True, height=320,
