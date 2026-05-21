@@ -616,11 +616,13 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
         html = f"""
         <div style="width: 100%; padding: 30px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 40px; margin-bottom: 20px;">
             <div style="width: 80%; max-width: 600px; position: relative;">
-                <div style="position: absolute; top: -36px; left: calc({pct}% - 20px); transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2;">
+                <div style="position: absolute; top: -35px; left: calc({pct}% - 20px); transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1); z-index: 3;">
                     {tractor_svg}
                 </div>
-                <div style="width: 100%; height: 12px; background-color: #E8E8EC; border-radius: 6px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06); position: relative; z-index: 1;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #D2232A, #FF4B53); border-radius: 6px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                <div style="width: 100%; height: 16px; background-color: #8D6E63; border-radius: 8px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); border-bottom: 2px solid #5D4037; position: relative; z-index: 1;">
+                    <!-- Grass clumps along the dirt track -->
+                    <div style="position: absolute; width: 100%; height: 100%; background-image: radial-gradient(#81C784 1.5px, transparent 1.5px); background-size: 12px 12px; opacity: 0.4;"></div>
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #D2232A, #FF4B53); border-radius: 8px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 2;"></div>
                 </div>
                 <div style="margin-top: 16px; text-align: center; color: #1A1A2E; font-size: 15px; font-weight: 700; font-family: 'Inter', sans-serif;">
                     {msg}
@@ -629,6 +631,9 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
         </div>
         """
         progress_container.markdown(html, unsafe_allow_html=True)
+        if pct > 0 and pct < 100:
+            import time
+            time.sleep(0.8)
 
     update_tractor(0, "Starting pipeline...")
 
