@@ -32,6 +32,24 @@ SKILL_SCORE_MAP = {
 }
 SKILL_LABELS = {-1: "NO TEST", 0: "0", 1: "L1", 2: "L2", 3: "L3", 4: "L4"}
 
+# ── COMPANY 5-POINT SCALE (internal 0-4 → company 1-5) ──────────────────────
+# Maps internal numeric skill scores to the company-standard 1-5 rating scale.
+COMPANY_SCALE_MAP = {-1: None, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+COMPANY_SCALE_LABELS = {
+    1: ("Beginner",      "No formal training or untested — needs onboarding"),
+    2: ("Basic",         "Completed L1 foundations — can assist under supervision"),
+    3: ("Intermediate",  "Completed L2 — can handle routine tasks independently"),
+    4: ("Advanced",      "Completed L3 — can troubleshoot and mentor juniors"),
+    5: ("Expert",        "Completed L4 — certified specialist, can lead audits"),
+}
+COMPANY_SCALE_COLORS = {
+    1: "#FF6B6B",   # Red
+    2: "#FFA94D",   # Orange
+    3: "#FFD43B",   # Yellow
+    4: "#69DB7C",   # Green
+    5: "#228BE6",   # Blue
+}
+
 # ── TRAINING STATUS VALUES ───────────────────────────────────────────────────
 TRAINING_STATUSES = [
     "ELIGIBLE",
