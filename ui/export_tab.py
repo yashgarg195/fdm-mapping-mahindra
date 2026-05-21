@@ -30,7 +30,6 @@ def _download_row(label, buf, filename, description=""):
             unsafe_allow_html=True,
         )
     with col_btn:
-        st.markdown("<div style='padding-top:8px;'>", unsafe_allow_html=True)
         st.download_button(
             "↓ Download",
             data=buf,
@@ -38,7 +37,6 @@ def _download_row(label, buf, filename, description=""):
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key=f"dl_{filename}",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
     st.markdown(
         "<div style='border-bottom:1px solid #ececf0; margin:4px 0 8px 0;'></div>",
         unsafe_allow_html=True,
