@@ -984,28 +984,34 @@ if st.session_state.pop("collapse_sidebar_now", False):
         """
         <script>
         const collapseSidebar = () => {
-            const doc = window.parent.document;
-            const sidebar = doc.querySelector('[data-testid="stSidebar"]');
-            if (sidebar && sidebar.getAttribute('aria-expanded') !== 'false') {
-                const collapseBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"], button[aria-label="Collapse sidebar"], button[aria-label="Close"], button[aria-label="Collapse"]');
+            try {
+                const doc = window.parent.document;
+                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+                if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
+                    return true; // Already collapsed
+                }
+                
+                const collapseBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"], [data-testid="baseButton-headerNoPadding"], [data-testid="baseButton-header"], button[aria-label="Collapse sidebar"], button[aria-label="Close"]');
+                
                 if (collapseBtn) {
                     collapseBtn.click();
+                    collapseBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window.parent }));
                     return true;
                 }
+            } catch (e) {
+                // Ignore cross origin errors if any
             }
             return false;
         };
         
-        if (!collapseSidebar()) {
-            let retries = 0;
-            const interval = setInterval(() => {
-                if (collapseSidebar() || retries > 15) {
-                    clearInterval(interval);
-                }
-                retries++;
-            }, 100);
-        }
+        let retries = 0;
+        const interval = setInterval(() => {
+            if (collapseSidebar() || retries > 50) {
+                clearInterval(interval);
+            }
+            retries++;
+        }, 100);
         </script>
         """,
-        height=0, width=0
+        height=1, width=1
     )
