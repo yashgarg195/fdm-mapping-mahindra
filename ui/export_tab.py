@@ -7,7 +7,7 @@ import datetime
 import streamlit as st
 import pandas as pd
 from config.constants import BRAND_RED, BRAND_CHARCOAL, BRAND_DARK_CORE, BRAND_LIGHT_GREY
-from export.excel_export import (
+from reports_export.excel_export import (
     generate_excel_report,
     export_skill_report,
     export_manpower_summary,
@@ -114,7 +114,7 @@ def render_export_tab(unified_df, backlog_df, nomination_df, duplicate_df, audit
 
     @st.cache_data(show_spinner=False)
     def _cache(fn_name, filter_key, _df, _df2=None):
-        from export.excel_export import (
+        from reports_export.excel_export import (
             export_skill_report, export_manpower_summary,
             export_backlog, export_audit_quality, export_india_dashboard,
         )

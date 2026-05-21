@@ -35,7 +35,7 @@ from ui.audit_tab import render_audit
 from ui.export_tab import render_export_tab
 
 # ── Export ──────────────────────────────────────────────────────────────────
-from export.excel_export import generate_excel_report
+from reports_export.excel_export import generate_excel_report
 from storage.mapping_store import persist_mappings
 
 # ── Logging ─────────────────────────────────────────────────────────────────
