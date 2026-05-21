@@ -573,8 +573,9 @@ if "topnav_tabs" not in st.session_state or st.session_state["topnav_tabs"] not 
     st.session_state["topnav_tabs"] = st.session_state["current_tab"]
 
 is_app_loaded = "unified_df" in st.session_state and st.session_state["unified_df"] is not None
+current_page = st.session_state.get("current_tab", "Overview")
 
-if is_app_loaded or page == "Help & Guide":
+if is_app_loaded or current_page == "Help & Guide":
     st.markdown(f"""
     <div class="app-topnav">
         <div class="app-topnav-brand">
