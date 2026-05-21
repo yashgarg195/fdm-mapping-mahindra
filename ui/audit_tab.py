@@ -9,12 +9,13 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from config.constants import BRAND_RED, BRAND_CHARCOAL, CONFIDENCE_ORDER, CONFIDENCE_COLORS
+from utils.formatting_utils import style_section_header
 
 
 def render_audit(unified_df, duplicate_df, unresolved_df):
     """Render the Audit & Exceptions tab."""
     # ── Mapping Confidence Distribution ─────────────────────────────────────
-    st.markdown("#### Mapping Confidence Distribution")
+    st.markdown(style_section_header("Mapping Confidence Distribution", ""), unsafe_allow_html=True)
 
     if unified_df is not None and not unified_df.empty and "Match_Confidence" in unified_df.columns:
         conf_counts = unified_df["Match_Confidence"].value_counts().reindex(CONFIDENCE_ORDER, fill_value=0).reset_index()
@@ -23,13 +24,12 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
 
         chart1, chart2 = st.columns(2)
         with chart1:
-            fig = px.pie(
-                conf_counts, names="Confidence", values="Count",
+            fig = px.bar(
+                conf_counts, x="Confidence", y="Count",
                 color="Confidence",
                 color_discrete_map=CONFIDENCE_COLORS,
-                hole=0.4,
             )
-            fig.update_layout(margin=dict(t=20, b=20, l=20, r=20))
+            fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), showlegend=False, plot_bgcolor="rgba(0,0,0,0)")
             st.plotly_chart(fig, key="conf_pie")
 
         with chart2:
@@ -39,7 +39,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 conf_counts.to_excel(_buf_conf, index=False, engine="xlsxwriter")
                 _buf_conf.seek(0)
                 st.download_button(
-                    "Export Table", _buf_conf,
+                    "↓ Export Table", _buf_conf,
                     file_name="MAHINDRA_CONFIDENCE_DISTRIBUTION.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="audit_conf_export",
@@ -48,7 +48,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
 
         # Training Status Breakdown
         if "Training_Status" in unified_df.columns:
-            st.markdown("#### Training Status Breakdown")
+            st.markdown(style_section_header("Training Status Breakdown", ""), unsafe_allow_html=True)
             status_counts = unified_df["Training_Status"].value_counts().reset_index()
             status_counts.columns = ["Status", "Count"]
             status_counts["Pct"] = (status_counts["Count"] / max(status_counts["Count"].sum(), 1) * 100).round(1)
@@ -58,7 +58,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 status_counts.to_excel(_buf_ts, index=False, engine="xlsxwriter")
                 _buf_ts.seek(0)
                 st.download_button(
-                    "Export Table", _buf_ts,
+                    "↓ Export Table", _buf_ts,
                     file_name="MAHINDRA_TRAINING_STATUS.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="audit_ts_export",
@@ -68,7 +68,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         st.info("No confidence data available.")
 
     # ── Duplicate Log ───────────────────────────────────────────────────────
-    st.markdown("#### Duplicate Log")
+    st.markdown(style_section_header("Duplicate Log", ""), unsafe_allow_html=True)
     if duplicate_df is not None and not duplicate_df.empty:
         dup_label, dup_btn = st.columns([6, 2])
         with dup_label:
@@ -81,7 +81,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
             dup_display.to_excel(_buf_dup, index=False, engine="xlsxwriter")
             _buf_dup.seek(0)
             st.download_button(
-                "Export Table", _buf_dup,
+                "↓ Export Table", _buf_dup,
                 file_name="MAHINDRA_DUPLICATE_LOG.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="audit_dup_export",
@@ -91,7 +91,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         st.success("No exact duplicate records detected.")
 
     # ── Suspect Duplicates (Possible Matches) ───────────────────────────────
-    st.markdown("#### Suspect Duplicates (Possible Matches)")
+    st.markdown(style_section_header("Suspect Duplicates (Possible Matches)", ""), unsafe_allow_html=True)
     st.markdown(
         "<div style='font-size:0.9rem; color:#555; margin-bottom:15px;'>"
         "<b>What is a Possible Match?</b> A Possible Match occurs when the system identifies two records with different IDs but very similar names (e.g., 'Amit Kumar' and 'Ameet Kumar') working at the same location. These are flagged for your review to ensure they aren't the same person entered twice."
@@ -168,7 +168,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 suspects_display.to_excel(_buf_sus, index=False, engine="xlsxwriter")
                 _buf_sus.seek(0)
                 st.download_button(
-                    "Export Table", _buf_sus,
+                    "↓ Export Table", _buf_sus,
                     file_name="MAHINDRA_SUSPECT_DUPLICATES.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="audit_suspect_export",
@@ -181,7 +181,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         st.info("No data loaded.")
 
     # ── Unresolved Queue ────────────────────────────────────────────────────
-    st.markdown("#### Unresolved Identity Queue (PENDING_MAPPING_REVIEW)")
+    st.markdown(style_section_header("Unresolved Identity Queue (PENDING_MAPPING_REVIEW)", ""), unsafe_allow_html=True)
     if unresolved_df is not None and not unresolved_df.empty:
         ur_label, ur_btn = st.columns([6, 2])
         with ur_label:
@@ -195,7 +195,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
             ur_display.to_excel(_buf_ur, index=False, engine="xlsxwriter")
             _buf_ur.seek(0)
             st.download_button(
-                "Export Table", _buf_ur,
+                "↓ Export Table", _buf_ur,
                 file_name="MAHINDRA_UNRESOLVED_QUEUE.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="audit_unresolved_export",
@@ -205,7 +205,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         st.success("No unresolved records. All identities mapped.")
 
     # ── Data Quality Issues (with local filters) ─────────────────────────────
-    st.markdown("#### Data Quality Issues")
+    st.markdown(style_section_header("Data Quality Issues", ""), unsafe_allow_html=True)
     if unified_df is not None and not unified_df.empty:
         # Base columns to pull from each flagged subset — include Zone & State if present
         _base_cols = [c for c in ["Star ID", "Name", "Zone", "State", "Dealer Code"]
@@ -353,7 +353,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 filtered_issues.to_excel(_buf, index=False, engine="xlsxwriter")
                 _buf.seek(0)
                 st.download_button(
-                    "Export Table",
+                    "↓ Export Table",
                     data=_buf,
                     file_name="MAHINDRA_DATA_QUALITY_ISSUES.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
