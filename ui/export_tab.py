@@ -60,16 +60,16 @@ def render_export_tab(unified_df, backlog_df, nomination_df, duplicate_df, audit
         f"<div style='background:var(--muted); border-radius:8px; padding:12px 18px; border: 1px solid var(--border); "
         f"display:flex; gap:32px; flex-wrap:wrap; margin-bottom:20px;'>"
         f"<div><span style='color:var(--muted-foreground); font-size:0.78rem;'>REPORT GENERATED</span><br>"
-        f"<span style='font-weight:700; font-size:0.92rem; color:var(--text-color);'>{now}</span></div>"
+        f"<span style='font-weight:700; font-size:0.92rem; color:var(--foreground);'>{now}</span></div>"
         f"<div><span style='color:var(--muted-foreground); font-size:0.78rem;'>TOTAL RECORDS</span><br>"
-        f"<span style='font-weight:700; font-size:0.92rem; color:var(--text-color);'>{row_count:,}</span></div>"
+        f"<span style='font-weight:700; font-size:0.92rem; color:var(--foreground);'>{row_count:,}</span></div>"
         f"<div><span style='color:var(--muted-foreground); font-size:0.78rem;'>FILTERS APPLIED</span><br>"
-        f"<span style='font-weight:700; font-size:0.92rem; color:var(--text-color);'>"
+        f"<span style='font-weight:700; font-size:0.92rem; color:var(--foreground);'>"
         f"{'Yes — ' + ', '.join(active_filters.keys()) if active_filters else 'None (all data)'}</span></div>"
         f"<div><span style='color:var(--muted-foreground); font-size:0.78rem;'>UNIQUE MANPOWER</span><br>"
-        f"<span style='font-weight:700; font-size:0.92rem; color:var(--text-color);'>{kpis.get('total_manpower', 0):,}</span></div>"
+        f"<span style='font-weight:700; font-size:0.92rem; color:var(--foreground);'>{kpis.get('total_manpower', 0):,}</span></div>"
         f"<div><span style='color:var(--muted-foreground); font-size:0.78rem;'>MATCHED RECORDS</span><br>"
-        f"<span style='font-weight:700; font-size:0.92rem; color:var(--text-color);'>{stats.get('matched_count', 0):,}</span></div>"
+        f"<span style='font-weight:700; font-size:0.92rem; color:var(--foreground);'>{stats.get('matched_count', 0):,}</span></div>"
         f"</div>",
         unsafe_allow_html=True,
     )

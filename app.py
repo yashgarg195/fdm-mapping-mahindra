@@ -64,18 +64,32 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     :root {{
-      --background: var(--background-color);
-      --foreground: var(--text-color);
-      --primary: var(--primary-color);
-      --muted: var(--secondary-background-color);
-      --muted-foreground: var(--faded-text-color, #8B8BA7);
-      --accent: var(--secondary-background-color);
+      --background: #ffffff;
+      --foreground: #1A1A2E;
+      --primary: #1A1A2E;
+      --muted: #F7F7F9;
+      --muted-foreground: #8B8BA7;
+      --accent: #F3F3F5;
       --destructive: #C62828;
-      --input-background: var(--background-color);
+      --input-background: #ffffff;
       --radius: 6px;
       --brand-red: {BRAND_RED};
-      --brand-charcoal: var(--text-color);
+      --brand-charcoal: {BRAND_CHARCOAL};
       --topnav-brand-width: 480px;
+      --border: #E8E8EC;
+    }}
+    @media (prefers-color-scheme: dark) {{
+      :root {{
+        --background: #111118;
+        --foreground: #F7F7F9;
+        --primary: #F7F7F9;
+        --muted: #252532;
+        --muted-foreground: #B7B7C8;
+        --accent: #1B1B26;
+        --input-background: #111118;
+        --brand-charcoal: #F7F7F9;
+        --border: #3A3A4A;
+      }}
     }}
 
     html, body, [class*="css"] {{
