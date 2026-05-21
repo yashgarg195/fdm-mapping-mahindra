@@ -631,7 +631,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             audit_log = []
 
             # ── Step 1: Load & Classify Files (0% → 20%) ────────────────
-            update_tractor(5, "Step 1/5: Loading and classifying files...")
+            update_tractor(5, "Processing data...")
             manpower_dfs = []
             training_dfs = []
 
@@ -665,7 +665,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
 
                 update_tractor(
                     int(20 * (i + 1) / len(files)),
-                    f"Loaded {uploaded_file.name} ({len(cleaned):,} rows)"
+                    "Processing data..."
                 )
 
             if not manpower_dfs and not training_dfs:
@@ -680,7 +680,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             log_etl_event(len(training_df), len(training_df), 0, "Training")
 
             # ── Step 2: Deduplication (20% → 30%) ────────────────────────
-            update_tractor(20, f"Step 2/5: Detecting duplicates in {len(manpower_df):,} manpower + {len(training_df):,} training rows...")
+            update_tractor(20, "Processing data...")
 
             manpower_clean, manpower_dups = detect_duplicate_manpower(manpower_df)
             training_clean, training_dups = detect_duplicate_training(training_df)
@@ -692,10 +692,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(all_duplicates),
             ))
 
-            update_tractor(30, f"Found {len(all_duplicates)} duplicates")
+            update_tractor(30, "Processing data...")
 
             # ── Step 3: Identity Resolution (30% → 70%) ─────────────────
-            update_tractor(30, f"Step 3/5: Running 7-pass identity resolution on {len(training_clean):,} training rows against {len(manpower_clean):,} roster entries...")
+            update_tractor(30, "Processing data...")
 
             if not training_clean.empty and not manpower_clean.empty:
                 unified_df, stats = resolve_star_ids(training_clean, manpower_clean)
@@ -723,10 +723,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(unified_df),
             ))
 
-            update_tractor(70, f"Resolved {stats.get('matched_count', 0):,} identities")
+            update_tractor(70, "Processing data...")
 
             # ── Step 4: Training Status & Backlog (70% → 85%) ────────────
-            update_tractor(70, "Step 4/5: Assigning training status and building rolling backlog...")
+            update_tractor(70, "Processing data...")
 
             unified_df["Training_Status"] = unified_df.apply(assign_training_status, axis=1)
             backlog_df = build_rolling_backlog(unified_df)
@@ -738,10 +738,10 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
                 rows_affected=len(backlog_df),
             ))
 
-            update_tractor(85, f"Backlog: {len(backlog_df):,} pending employees")
+            update_tractor(85, "Processing data...")
 
             # ── Step 5: Compute KPIs & Persist (85% → 100%) ─────────────
-            update_tractor(85, f"Step 5/5: Computing KPIs across {len(unified_df):,} unified records...")
+            update_tractor(85, "Processing data...")
 
             st.session_state["raw_training_count"] = len(training_df)
             st.session_state["raw_roster_count"] = len(manpower_df)

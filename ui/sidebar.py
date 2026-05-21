@@ -51,15 +51,15 @@ def render_sidebar():
     # ── Run Pipeline Button ─────────────────────────────────────────────────
     if len(result["uploaded_files"]) >= 2:
         result["run_pipeline"] = st.sidebar.button(
-            "Run Pipeline",
+            "Analyse",
             type="primary",
         )
     elif result["uploaded_files"]:
         st.sidebar.button(
-            "Run Pipeline",
+            "Analyse",
             type="primary",
             disabled=True,
-            help="Please upload at least 2 files (Roster and Training Data) to run the pipeline."
+            help="Please upload at least 2 files (Roster and Training Data) to analyse the data."
         )
 
 
