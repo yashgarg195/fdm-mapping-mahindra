@@ -38,15 +38,7 @@ def render_help():
 
 ---
 
-**Skill Scale (1–10):**
 
-| Score | Level | Meaning |
-|-------|-------|---------|
-| 2 | Beginner | Untested / No training |
-| 4 | Basic | Completed L1 |
-| 6 | Intermediate | Completed L2 |
-| 8 | Advanced | Completed L3 |
-| 10 | Expert | Completed L4 |
 
 ---
 

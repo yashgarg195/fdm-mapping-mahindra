@@ -98,7 +98,7 @@ st.markdown(f"""
         color: var(--foreground);
     }}
     .block-container {{
-        padding-top: 0rem !important;
+        padding-top: 15px !important;
         padding-bottom: 2.5rem !important;
     }}
     p, li, label, .stMarkdown, .stText {{
@@ -971,15 +971,27 @@ if st.session_state.pop("collapse_sidebar_now", False):
     components.html(
         """
         <script>
-        const doc = window.parent.document;
-        // Find the sidebar itself
-        const sidebar = doc.querySelector('[data-testid="stSidebar"]');
-        if (sidebar && sidebar.getAttribute('aria-expanded') !== 'false') {
-            // Find the collapse button and click it
-            const collapseBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"], button[aria-label="Collapse sidebar"]');
-            if (collapseBtn) {
-                collapseBtn.click();
+        const collapseSidebar = () => {
+            const doc = window.parent.document;
+            const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+            if (sidebar && sidebar.getAttribute('aria-expanded') !== 'false') {
+                const collapseBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"], button[aria-label="Collapse sidebar"], button[aria-label="Close"], button[aria-label="Collapse"]');
+                if (collapseBtn) {
+                    collapseBtn.click();
+                    return true;
+                }
             }
+            return false;
+        };
+        
+        if (!collapseSidebar()) {
+            let retries = 0;
+            const interval = setInterval(() => {
+                if (collapseSidebar() || retries > 15) {
+                    clearInterval(interval);
+                }
+                retries++;
+            }, 100);
         }
         </script>
         """,
