@@ -349,7 +349,6 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                     unsafe_allow_html=True,
                 )
             with export_col:
-                import io
                 _buf = io.BytesIO()
                 filtered_issues.to_excel(_buf, index=False, engine="xlsxwriter")
                 _buf.seek(0)
