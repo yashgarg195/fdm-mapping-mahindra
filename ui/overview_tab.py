@@ -282,39 +282,43 @@ def render_overview(unified_df, kpis, filters):
 
     state_df = state_coverage_top(unified_df, n=10)
     if not state_df.empty:
-        scol1, scol2 = st.columns([2, 1])
-        with scol1:
-            fig_states = px.bar(
-                state_df.sort_values("Coverage_Pct"),
-                x="Coverage_Pct", y="State", orientation="h",
-                color="Coverage_Pct",
-                color_continuous_scale=[[0, "#E0E0E0"], [1.0, "#455A64"]],
-                labels={"Coverage_Pct": "Coverage %", "State": ""},
-                text="Coverage_Pct",
+        # Render Graph
+        fig_states = px.bar(
+            state_df.sort_values("Coverage_Pct"),
+            x="Coverage_Pct", y="State", orientation="h",
+            color="Coverage_Pct",
+            color_continuous_scale=[[0, "#E0E0E0"], [1.0, "#455A64"]],
+            labels={"Coverage_Pct": "Coverage %", "State": ""},
+            text="Coverage_Pct",
+        )
+        fig_states.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
+        fig_states.update_layout(
+            **_CHART_LAYOUT,
+            coloraxis_showscale=False,
+            xaxis=dict(title="Coverage %", range=[0, 110], showgrid=True, gridcolor="#ececf0"),
+            height=450,
+        )
+        st.plotly_chart(fig_states, use_container_width=True, key="state_coverage_chart")
+
+        # Render Table Below
+        st.markdown("<br>", unsafe_allow_html=True)
+        _st_label, _st_btn = st.columns([7, 2])
+        with _st_label:
+            st.markdown(f"**State Coverage Data Table**")
+        with _st_btn:
+            _buf_st = io.BytesIO()
+            state_df.to_excel(_buf_st, index=False, engine="xlsxwriter")
+            _buf_st.seek(0)
+            st.download_button(
+                "Export Table", _buf_st,
+                file_name="MAHINDRA_OVERVIEW_STATE_COVERAGE.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="overview_state_export",
             )
-            fig_states.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
-            fig_states.update_layout(
-                **_CHART_LAYOUT,
-                coloraxis_showscale=False,
-                xaxis=dict(title="Coverage %", range=[0, 110], showgrid=True, gridcolor="#ececf0"),
-            )
-            st.plotly_chart(fig_states, use_container_width=True, key="state_coverage_chart")
-        with scol2:
-            _st_label, _st_btn = st.columns([3, 2])
-            with _st_btn:
-                _buf_st = io.BytesIO()
-                state_df.to_excel(_buf_st, index=False, engine="xlsxwriter")
-                _buf_st.seek(0)
-                st.download_button(
-                    "Export Table", _buf_st,
-                    file_name="MAHINDRA_OVERVIEW_STATE_COVERAGE.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="overview_state_export",
-                )
-            st.dataframe(
-                state_df,
-                use_container_width=True, height=320,
-                column_config=COLUMN_CONFIGS,
-            )
+        st.dataframe(
+            state_df,
+            use_container_width=True, height=380,
+            column_config=COLUMN_CONFIGS,
+        )
     else:
         st.info("No state-level data available.")
