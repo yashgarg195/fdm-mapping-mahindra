@@ -618,7 +618,12 @@ sidebar_result = render_sidebar()
 if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
     progress_container = st.empty()
     def update_tractor(pct, msg):
-        tractor_svg = '''<svg width="40" height="40" viewBox="0 0 24 24" style="transform: scaleX(-1); filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.2));" fill="#D2232A" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 10.5L15 8V6H11V8H6V5H4V12H5.2C5.5 13.7 7.1 15 9 15C10.9 15 12.5 13.7 12.8 12H15.2C15.5 13.7 17.1 15 19 15C20.9 15 22.5 13.7 22.8 12H23V10.5H17.5ZM9 13.5C8.2 13.5 7.5 12.8 7.5 12C7.5 11.2 8.2 10.5 9 10.5C9.8 10.5 10.5 11.2 10.5 12C10.5 12.8 9.8 13.5 9 13.5ZM19 13.5C18.2 13.5 17.5 12.8 17.5 12C17.5 11.2 18.2 10.5 19 10.5C19.8 10.5 20.5 11.2 20.5 12C20.5 12.8 19.8 13.5 19 13.5ZM15 10.5H12V8H15V10.5Z"/></svg>'''
+        import base64
+        import os
+        tractor_path = os.path.join(os.path.dirname(__file__), "ui", "tractor.png")
+        with open(tractor_path, "rb") as f:
+            tractor_b64 = base64.b64encode(f.read()).decode("utf-8")
+        tractor_svg = f'''<img src="data:image/png;base64,{tractor_b64}" style="width: 80px; height: auto; transform: scaleX(-1); filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.2)); margin-top: -20px; margin-left: -20px;" />'''
         html = f"""
         <div style="width: 100%; padding: 30px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 40px; margin-bottom: 20px;">
             <div style="width: 80%; max-width: 600px; position: relative;">
