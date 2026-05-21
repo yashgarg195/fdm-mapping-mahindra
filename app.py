@@ -210,6 +210,12 @@ for key in ["unified_df", "duplicate_df", "backlog_df", "nomination_df",
         st.session_state[key] = None
 if "audit_log" not in st.session_state or st.session_state["audit_log"] is None:
     st.session_state["audit_log"] = []
+# Applied filters (committed via Apply Filters button). Empty dict = no filter = all rows shown.
+if "global_filters" not in st.session_state:
+    st.session_state["global_filters"] = {}
+# Counter used to force-reset multiselect widgets when Clear Filters is clicked.
+if "filter_reset_counter" not in st.session_state:
+    st.session_state["filter_reset_counter"] = 0
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -386,65 +392,102 @@ if st.session_state.get("pipeline_complete"):
     backlog_df = st.session_state["backlog_df"]
     nomination_df = st.session_state["nomination_df"]
     kpis = st.session_state["kpis"]
-    
+
     # ── Main Area Filters ───────────────────────────────────────────────────
     st.markdown("### Global Filters")
-    
-    if "global_filters" not in st.session_state:
-        st.session_state.global_filters = {}
+
+    # Use the reset counter as part of the widget key so that changing it
+    # forces Streamlit to recreate the widgets with empty defaults.
+    _rc = st.session_state["filter_reset_counter"]
 
     with st.expander("Filter Options", expanded=True):
         f_col1, f_col2, f_col3, f_col4 = st.columns(4)
-        
+
         zones = sorted(unified_df["Zone"].dropna().unique()) if "Zone" in unified_df.columns else []
-        sel_zones = f_col1.multiselect("Zone", zones, default=st.session_state.global_filters.get("Zone", zones), key="temp_zone")
-        
-        available_states = []
+        # Restore previously applied filter selections (empty list = no filter selected).
+        sel_zones = f_col1.multiselect(
+            "Zone", zones,
+            default=st.session_state["global_filters"].get("Zone", []),
+            key=f"sel_zone_{_rc}",
+        )
+
+        # States cascade from selected zones (or show all if no zone selected).
         if "State" in unified_df.columns:
             if sel_zones:
-                available_states = sorted(unified_df[unified_df["Zone"].isin(sel_zones)]["State"].dropna().unique())
+                available_states = sorted(
+                    unified_df[unified_df["Zone"].isin(sel_zones)]["State"].dropna().unique()
+                )
             else:
                 available_states = sorted(unified_df["State"].dropna().unique())
-        
-        # Ensure default states are valid
-        def_states = [s for s in st.session_state.global_filters.get("State", available_states) if s in available_states]
-        sel_states = f_col2.multiselect("State", available_states, default=def_states, key="temp_state")
-        
+        else:
+            available_states = []
+        saved_states = [s for s in st.session_state["global_filters"].get("State", []) if s in available_states]
+        sel_states = f_col2.multiselect(
+            "State", available_states,
+            default=saved_states,
+            key=f"sel_state_{_rc}",
+        )
+
         desigs = sorted(unified_df["Designation"].dropna().unique()) if "Designation" in unified_df.columns else []
-        sel_desigs = f_col3.multiselect("Designation", desigs, default=st.session_state.global_filters.get("Designation", desigs), key="temp_desig")
-        
+        sel_desigs = f_col3.multiselect(
+            "Designation", desigs,
+            default=st.session_state["global_filters"].get("Designation", []),
+            key=f"sel_desig_{_rc}",
+        )
+
         dealers = sorted(unified_df["Dealer Name"].dropna().unique()) if "Dealer Name" in unified_df.columns else []
-        sel_dealers = f_col4.multiselect("Dealer Name", dealers, default=st.session_state.global_filters.get("Dealer Name", []), key="temp_dealer")
+        sel_dealers = f_col4.multiselect(
+            "Dealer Name", dealers,
+            default=st.session_state["global_filters"].get("Dealer Name", []),
+            key=f"sel_dealer_{_rc}",
+        )
 
         btn_col1, btn_col2, _ = st.columns([2, 2, 8])
+
         if btn_col1.button("Apply Filters", type="primary"):
-            st.session_state.global_filters = {
-                "Zone": sel_zones,
-                "State": sel_states,
+            # Commit current widget selections as the active filter.
+            # An empty list for any dimension means "no filter on that dimension".
+            st.session_state["global_filters"] = {
+                "Zone":        sel_zones,
+                "State":       sel_states,
                 "Designation": sel_desigs,
-                "Dealer Name": sel_dealers
+                "Dealer Name": sel_dealers,
             }
             st.rerun()
-            
+
         if btn_col2.button("Clear Filters"):
-            st.session_state.global_filters = {}
-            for k in ["temp_zone", "temp_state", "temp_desig", "temp_dealer"]:
-                if k in st.session_state:
-                    del st.session_state[k]
+            # Wipe applied filters and increment the reset counter so the
+            # multiselect widgets are recreated with empty defaults.
+            st.session_state["global_filters"] = {}
+            st.session_state["filter_reset_counter"] += 1
             st.rerun()
 
-    filters = st.session_state.global_filters
-    df_filtered = apply_filters(unified_df, filters)
+    # ── Apply committed filters to the data ─────────────────────────────────
+    # apply_filters already handles empty dicts/lists (returns full df).
+    df_filtered = apply_filters(unified_df, st.session_state["global_filters"])
 
     # ── Top Action Bar ──────────────────────────────────────────────────────
     st.markdown("---")
     act_col1, act_col2 = st.columns([4, 8])
     with act_col1:
-        with st.spinner("Preparing Excel report..."):
-            excel_buf = generate_excel_report(
-                df_filtered, backlog_df, duplicate_df,
-                st.session_state.get("audit_log", []),
-            )
+        # Generate Excel lazily — the buffer is prepared once per unique filter
+        # state and cached by Streamlit so it does not block every render.
+        @st.cache_data(show_spinner="Preparing Excel report...")
+        def _get_excel_report(filter_key, _udf, _bdf, _ddf, _alog):
+            """Cache-keyed Excel generation — reruns only when filters change."""
+            return generate_excel_report(_udf, _bdf, _ddf, _alog)
+
+        # Build a stable, lightweight cache key from the applied filters.
+        _filter_key = str(sorted(st.session_state["global_filters"].items()))
+
+        excel_buf = _get_excel_report(
+            _filter_key,
+            df_filtered,
+            backlog_df,
+            duplicate_df,
+            st.session_state.get("audit_log", []),
+        )
+
         st.download_button(
             "Download Full Report (8 Sheets)",
             excel_buf,
@@ -452,10 +495,12 @@ if st.session_state.get("pipeline_complete"):
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
     with act_col2:
+        active_filters = {k: v for k, v in st.session_state["global_filters"].items() if v}
+        filter_label = "filters applied" if active_filters else "no filters active — showing all data"
         st.markdown(
             f"<div style='padding:8px 14px; background:var(--muted); border-radius:6px; "
             f"display:inline-block; font-size:0.85rem; color:var(--muted-foreground);'>"
-            f"Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows (filters applied)</div>",
+            f"Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows &nbsp;·&nbsp; {filter_label}</div>",
             unsafe_allow_html=True,
         )
 
@@ -471,20 +516,23 @@ if st.session_state.get("pipeline_complete"):
     ])
 
     with tab1:
-        with st.spinner("Loading Overview..."):
-            render_overview(df_filtered, kpis, filters)
+        render_overview(df_filtered, kpis, st.session_state["global_filters"])
 
     with tab2:
-        render_backlog(backlog_df, nomination_df, filters)
+        render_backlog(backlog_df, nomination_df, st.session_state["global_filters"])
 
     with tab3:
-        render_skill(df_filtered, filters)
+        render_skill(df_filtered, st.session_state["global_filters"])
 
     with tab4:
-        render_manpower(df_filtered, filters)
+        render_manpower(df_filtered, st.session_state["global_filters"])
 
     with tab5:
-        unresolved_df = unified_df[unified_df["Match_Confidence"] == "UNRESOLVED"] if "Match_Confidence" in unified_df.columns else pd.DataFrame()
+        unresolved_df = (
+            unified_df[unified_df["Match_Confidence"] == "UNRESOLVED"]
+            if "Match_Confidence" in unified_df.columns
+            else pd.DataFrame()
+        )
         render_audit(df_filtered, duplicate_df, unresolved_df)
 
 else:

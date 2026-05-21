@@ -57,6 +57,12 @@ def render_sidebar():
 
 def apply_filters(df, filters):
     """Apply filter selections to a DataFrame.
+
+    Rules:
+    - An empty ``filters`` dict (or None) → return full DataFrame (no filter).
+    - An empty list for a dimension → no filter on that dimension (show all).
+    - A non-empty list for a dimension → keep only matching rows.
+
     Returns filtered DataFrame. Never mutates the original.
     """
     if df is None or df.empty or not filters:
@@ -64,6 +70,7 @@ def apply_filters(df, filters):
 
     filtered = df.copy()
     for col, values in filters.items():
+        # Skip dimensions where nothing was selected (empty list = no filter).
         if col in filtered.columns and values:
             filtered = filtered[filtered[col].isin(values)]
     return filtered
