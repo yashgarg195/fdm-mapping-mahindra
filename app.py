@@ -117,15 +117,21 @@ st.markdown(f"""
         background-color: var(--background) !important;
         border-right: 1px solid var(--muted);
     }}
+    /* Catch every text node Streamlit renders inside the sidebar */
     section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] small,
     section[data-testid="stSidebar"] .stMarkdown,
     section[data-testid="stSidebar"] .stMarkdown p,
+    section[data-testid="stSidebar"] .stMarkdown h1,
     section[data-testid="stSidebar"] .stMarkdown h2,
     section[data-testid="stSidebar"] .stMarkdown h3,
+    section[data-testid="stSidebar"] .stMarkdown h4,
     section[data-testid="stSidebar"] .stMarkdown span {{
         color: var(--foreground) !important;
     }}
-    /* Ensure inputs, selectboxes, and dropdown values in sidebar are readable */
+    /* Selectbox / multiselect control boxes */
     section[data-testid="stSidebar"] div[data-baseweb="select"] div,
     section[data-testid="stSidebar"] div[data-baseweb="select"] span,
     section[data-testid="stSidebar"] div[data-baseweb="select"] input {{
@@ -387,28 +393,13 @@ if st.session_state.get("pipeline_complete"):
     # Apply filters to unified_df for display
     df_filtered = apply_filters(unified_df, filters)
 
-    # ── Excel Download ──────────────────────────────────────────────────────
-    dl_col1, dl_col2 = st.columns(2)
-    with dl_col1:
-        excel_buf = generate_excel_report(
-            df_filtered, backlog_df, duplicate_df,
-            st.session_state.get("audit_log", []),
-        )
-        st.download_button(
-            "📥 Download Full Report (8 Sheets)",
-            excel_buf,
-            file_name="MAHINDRA_TRAINING_ANALYTICS_REPORT.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-        )
-    with dl_col2:
-        st.markdown(
-            f"<div style='padding:8px; background:{BRAND_LIGHT_GREY}; border-radius:6px; "
-            f"text-align:center; font-size:0.85rem; color:{BRAND_CHARCOAL};'>"
-            f"📊 Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows "
-            f"(filters applied)</div>",
-            unsafe_allow_html=True,
-        )
+    # ── Row count info pill ──────────────────────────────────────────────────
+    st.markdown(
+        f"<div style='padding:8px 14px; background:{BRAND_LIGHT_GREY}; border-radius:6px; "
+        f"display:inline-block; font-size:0.85rem; color:{BRAND_CHARCOAL}; margin-bottom:8px;'>"
+        f"📊 Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows (filters applied)</div>",
+        unsafe_allow_html=True,
+    )
 
     # ── Tab Routing ─────────────────────────────────────────────────────────
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -420,7 +411,8 @@ if st.session_state.get("pipeline_complete"):
     ])
 
     with tab1:
-        render_overview(df_filtered, kpis, filters)
+        with st.spinner("Loading Overview..."):
+            render_overview(df_filtered, kpis, filters)
 
     with tab2:
         render_backlog(backlog_df, nomination_df, filters)
@@ -432,8 +424,23 @@ if st.session_state.get("pipeline_complete"):
         render_manpower(df_filtered, filters)
 
     with tab5:
-        unresolved_df = unified_df[unified_df.get("Match_Confidence", "") == "UNRESOLVED"] if "Match_Confidence" in unified_df.columns else pd.DataFrame()
+        unresolved_df = unified_df[unified_df["Match_Confidence"] == "UNRESOLVED"] if "Match_Confidence" in unified_df.columns else pd.DataFrame()
         render_audit(df_filtered, duplicate_df, unresolved_df)
+
+    # ── Excel Download (deferred to bottom so it never blocks tab render) ───
+    st.markdown("---")
+    with st.spinner("Preparing Excel report..."):
+        excel_buf = generate_excel_report(
+            df_filtered, backlog_df, duplicate_df,
+            st.session_state.get("audit_log", []),
+        )
+    st.download_button(
+        "📥 Download Full Report (8 Sheets)",
+        excel_buf,
+        file_name="MAHINDRA_TRAINING_ANALYTICS_REPORT.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=False,
+    )
 
 else:
     # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────

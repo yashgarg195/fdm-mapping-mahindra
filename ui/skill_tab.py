@@ -1,14 +1,52 @@
 """
 Skill Tab — Skill distribution, regression table, uplift heatmap.
+Scores displayed on company-standard 1–5 scale with visual legend.
 """
 import streamlit as st
 import pandas as pd
-from config.constants import BRAND_RED, BRAND_CHARCOAL, SKILL_SCORE_MAP
+from config.constants import (
+    BRAND_RED, BRAND_CHARCOAL, SKILL_SCORE_MAP,
+    COMPANY_SCALE_MAP, COMPANY_SCALE_LABELS, COMPANY_SCALE_COLORS,
+)
 from utils.formatting_utils import style_kpi_card
 from analytics.skill_analytics import regression_cases
 
+
+def _to_company(internal_score):
+    """Convert internal 0-4 score to company 1-5 scale."""
+    return COMPANY_SCALE_MAP.get(int(internal_score), None) if pd.notna(internal_score) and internal_score >= 0 else None
+
+
+def _fmt_company(val):
+    """Format a company-scale float to a display string like '3.2 / 5'."""
+    if val is None or pd.isna(val):
+        return "N/A"
+    return f"{val:.1f} / 5"
+
+
+def _render_scale_legend():
+    """Render the 1-5 company scale visual legend as an HTML bar."""
+    cells = ""
+    for score in range(1, 6):
+        label, desc = COMPANY_SCALE_LABELS[score]
+        color = COMPANY_SCALE_COLORS[score]
+        cells += f"""
+        <div style="flex:1; text-align:center; padding:6px 4px; background:{color};
+                    color:#231F20; font-size:0.72rem; line-height:1.3;
+                    border-right:2px solid white;">
+            <div style="font-weight:800; font-size:1.1rem;">{score}</div>
+            <div style="font-weight:700;">{label}</div>
+            <div style="font-size:0.65rem; opacity:0.85;">{desc}</div>
+        </div>"""
+    return f"""
+    <div style="display:flex; border-radius:8px; overflow:hidden;
+                box-shadow:0 2px 8px rgba(0,0,0,0.08); margin:12px 0 18px 0;">
+        {cells}
+    </div>"""
+
+
 def render_skill(unified_df, filters):
-    """Render the Skill Analytics tab."""
+    """Render the Skill Analytics tab with company 1-5 scale."""
     if unified_df is None or unified_df.empty:
         st.info("No data available for skill analytics.")
         return
@@ -23,50 +61,65 @@ def render_skill(unified_df, filters):
         st.info("No trained manpower data available for skill analytics.")
         return
 
-    # Compute scores if not present
+    # Compute internal scores if not present
     if "pre_score" not in df.columns:
         df["pre_score"] = df.get("SKILL LEVEL - PRE", pd.Series(dtype="object")).map(SKILL_SCORE_MAP).fillna(-1).astype(int)
     if "post_score" not in df.columns:
         df["post_score"] = df.get("SKILL LEVEL - POST", pd.Series(dtype="object")).map(SKILL_SCORE_MAP).fillna(-1).astype(int)
 
-    # ── Skill Score Explanation ──────────────────────────────────────────────
-    st.markdown("""
-    ### ℹ️ About Skill Scoring
-    The Skill Score measures the technical proficiency of our manpower on a **0 to 5 scale**:
-    * **0**: Unrated / Entry Level
-    * **1-2 (L1/L2)**: Basic to Intermediate
-    * **3-4 (L3/L4)**: Advanced Specialist
-    * **5 (L5)**: Master / Expert
-    
-    **Formula:** The uplift is calculated as the simple average of `Post-Training Score - Pre-Training Score` for all *trained* individuals. Untrained individuals are excluded from these metrics.
-    """)
+    # Convert to company 1-5 scale
+    df["pre_company"] = df["pre_score"].apply(_to_company)
+    df["post_company"] = df["post_score"].apply(_to_company)
 
-    # ── KPI Cards ───────────────────────────────────────────────────────────
-    valid_pre = df[df["pre_score"] >= 0]["pre_score"]
-    valid_post = df[df["post_score"] >= 0]["post_score"]
+    # ── Scale Legend ─────────────────────────────────────────────────────────
+    st.markdown("#### Mahindra Skill Rating Scale (1–5)")
+    st.markdown(_render_scale_legend(), unsafe_allow_html=True)
+
+    # ── KPI Cards (company scale) ────────────────────────────────────────────
+    valid_pre = df["pre_company"].dropna()
+    valid_post = df["post_company"].dropna()
     avg_pre = valid_pre.mean() if not valid_pre.empty else 0
     avg_post = valid_post.mean() if not valid_post.empty else 0
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown(style_kpi_card("AVG PRE-TRAINING", f"{avg_pre:.2f}", "SKILL SCORE", BRAND_CHARCOAL), unsafe_allow_html=True)
+        st.markdown(style_kpi_card(
+            "AVG PRE-TRAINING",
+            _fmt_company(avg_pre),
+            "COMPANY SCALE (1-5)",
+            BRAND_CHARCOAL,
+        ), unsafe_allow_html=True)
     with c2:
-        st.markdown(style_kpi_card("AVG POST-TRAINING", f"{avg_post:.2f}", "SKILL SCORE", BRAND_RED), unsafe_allow_html=True)
+        st.markdown(style_kpi_card(
+            "AVG POST-TRAINING",
+            _fmt_company(avg_post),
+            "COMPANY SCALE (1-5)",
+            BRAND_RED,
+        ), unsafe_allow_html=True)
     with c3:
-        gain = avg_post - avg_pre
+        gain = avg_post - avg_pre if avg_pre and avg_post else 0
         sign = "+" if gain >= 0 else ""
-        st.markdown(style_kpi_card("SKILL UPLIFT", f"{sign}{gain:.2f}", "AVG DELTA", "#90EE90" if gain >= 0 else "#FF8C00"), unsafe_allow_html=True)
+        st.markdown(style_kpi_card(
+            "SKILL UPLIFT",
+            f"{sign}{gain:.2f}",
+            "POINTS ON 1-5 SCALE",
+            "#69DB7C" if gain >= 0 else "#FF8C00",
+        ), unsafe_allow_html=True)
 
     # ── Regression Table ────────────────────────────────────────────────────
-    st.markdown("#### ⚠️ Skill Regression Cases")
+    st.markdown("#### :warning: Skill Regression Cases")
     reg = regression_cases(df)
     if not reg.empty:
-        st.markdown(f"**{len(reg)} records** where post-skill < pre-skill")
+        st.markdown(f"**{len(reg)} records** where post-training score dropped below pre-training score")
         st.dataframe(reg, height=300)
     else:
         st.success("No skill regressions detected.")
 
     # ── Non-improving count ─────────────────────────────────────────────────
     trained = df[df.get("Training year", pd.Series()).notna()]
-    non_improving = trained[(trained["pre_score"] >= 0) & (trained["post_score"] >= 0) & (trained["post_score"] == trained["pre_score"])]
+    non_improving = trained[
+        (trained["pre_score"] >= 0) &
+        (trained["post_score"] >= 0) &
+        (trained["post_score"] == trained["pre_score"])
+    ]
     st.markdown(f"**Non-improving manpower:** {len(non_improving)} employees attended training with no skill change.")
