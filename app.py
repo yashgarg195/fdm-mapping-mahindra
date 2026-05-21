@@ -929,36 +929,7 @@ if st.session_state.get("pipeline_complete"):
 
 
 else:
-    # ── Pre-Upload View ───────────────────────────────────────────────────
-    tab_help, tab_upload = st.tabs(["Help & Guide", "Upload Data"])
-    
-    with tab_help:
-        render_help()
-        
-    with tab_upload:
-        # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────
-        st.markdown(f"""
-        <div style="text-align:center; padding:80px 20px;">
-            <div style="background:{BRAND_RED}; color:white; font-size:4rem; font-weight:900;
-                        width:100px; height:100px; display:flex; align-items:center; justify-content:center;
-                        border-radius:16px; margin:auto; box-shadow: 0 4px 12px rgba(210,35,42,0.4);">M</div>
-            <h2 style="color:var(--foreground) !important; margin-top:20px; font-weight: 700;">
-                Enterprise Dashboard
-            </h2>
-            <p style="color:var(--muted-foreground) !important; font-size:13px; max-width:600px; margin:auto;">
-                Upload your Manpower Roster and Training Data files using the sidebar.
-                Assign file types and click <b>Analyse</b> to process.
-            </p>
-            <div style="margin-top:30px; padding:16px; background:var(--muted); border: 1px solid var(--border);
-                        border-radius:8px; display:inline-block;">
-                <div style="font-size:11px; color:var(--muted-foreground) !important;">
-                    <b>Supported:</b> .xlsx, .csv &nbsp;·&nbsp; <b>Max files:</b> 4 &nbsp;·&nbsp;
-                    <b>Max size:</b> 60MB per file<br>
-                    <b>100% Offline</b> &nbsp;·&nbsp; <b>Zero Row Loss</b> &nbsp;·&nbsp; <b>Deterministic</b>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    pass
 
 if "has_expanded_on_load" not in st.session_state:
     st.session_state["has_expanded_on_load"] = True
