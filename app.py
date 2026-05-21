@@ -292,8 +292,10 @@ st.markdown(f"""
         color: var(--foreground) !important;
     }}
     header[data-testid="stHeader"] {{
-        background-color: transparent !important;
-        border-bottom: none !important;
+        display: none !important;
+    }}
+    .stApp > header {{
+        display: none !important;
     }}
     /* ── Sidebar ───────────────────────────────────────── */
     section[data-testid="stSidebar"] {{
@@ -536,7 +538,7 @@ if "topnav_tabs" not in st.session_state or st.session_state["topnav_tabs"] not 
 is_app_loaded = "unified_df" in st.session_state and st.session_state["unified_df"] is not None
 current_page = st.session_state.get("current_tab", "Overview")
 
-if is_app_loaded or current_page == "Help & Guide":
+if is_app_loaded:
     st.markdown(f"""
     <div class="app-topnav">
         <div class="app-topnav-brand">
@@ -929,7 +931,41 @@ if st.session_state.get("pipeline_complete"):
 
 
 else:
-    pass
+    if page == "Help & Guide":
+        if st.button("← Back to Dashboard", use_container_width=False):
+            st.session_state["current_tab"] = "Overview"
+            st.rerun()
+        render_help()
+    else:
+        # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────
+        st.markdown(f"""
+        <div style="text-align:center; padding:80px 20px 20px 20px;">
+            <div style="background:{BRAND_RED}; color:white; font-size:4rem; font-weight:900;
+                        width:100px; height:100px; display:flex; align-items:center; justify-content:center;
+                        border-radius:16px; margin:auto; box-shadow: 0 4px 12px rgba(210,35,42,0.4);">M</div>
+            <h2 style="color:var(--foreground) !important; margin-top:20px; font-weight: 700;">
+                Enterprise Dashboard
+            </h2>
+            <p style="color:var(--muted-foreground) !important; font-size:13px; max-width:600px; margin:auto;">
+                Upload your Manpower Roster and Training Data files using the sidebar.
+                Assign file types and click <b>Run Pipeline</b> to process.
+            </p>
+            <div style="margin-top:30px; padding:16px; background:var(--muted); border: 1px solid var(--border);
+                        border-radius:8px; display:inline-block; margin-bottom: 20px;">
+                <div style="font-size:11px; color:var(--muted-foreground) !important;">
+                    <b>Supported:</b> .xlsx, .csv &nbsp;·&nbsp; <b>Max files:</b> 4 &nbsp;·&nbsp;
+                    <b>Max size:</b> 60MB per file<br>
+                    <b>100% Offline</b> &nbsp;·&nbsp; <b>Zero Row Loss</b> &nbsp;·&nbsp; <b>Deterministic</b>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("Need help getting started? View Guide", use_container_width=True):
+                st.session_state["current_tab"] = "Help & Guide"
+                st.rerun()
 
 if "has_expanded_on_load" not in st.session_state:
     st.session_state["has_expanded_on_load"] = True

@@ -38,11 +38,13 @@ def render_help():
 
 ---
 
-
-
----
-
 **What is this website for? (In Simple Words):**
 
 This tool acts as a smart organizer for our workforce data. It takes two messy spreadsheets—one containing the list of all our employees (Manpower Roster) and another tracking the training they've received (Training Data)—and carefully matches them together. It automatically spots duplicates, figures out who has or hasn't been trained, highlights skill improvements, and identifies who is due for more training. Ultimately, it gives us a clear, unified view of our team's capabilities across the country without any missing pieces!
+
+---
+
+**Developers:**
+- **Anumay Pandey** (Email: pandey.anumay18@gmail.com)
+- **Yash Garg** (Email: yashgarg7977@gmail.com)
 """)
