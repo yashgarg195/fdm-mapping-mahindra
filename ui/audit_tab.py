@@ -104,13 +104,17 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
     # ── Data Quality Issues (with local filters) ─────────────────────────────
     st.markdown("#### Data Quality Issues")
     if unified_df is not None and not unified_df.empty:
+        # Base columns to pull from each flagged subset — include Zone & State if present
+        _base_cols = [c for c in ["Star ID", "Name", "Zone", "State", "Dealer Code"]
+                      if c in unified_df.columns]
+
         issues_frames = []
 
         # Future dates
         if "FUTURE_JOINING_FLAG" in unified_df.columns:
             future = unified_df[unified_df["FUTURE_JOINING_FLAG"] == True]
             if not future.empty:
-                f_df = future[["Star ID", "Name", "Dealer Code"]].copy()
+                f_df = future[_base_cols].copy()
                 f_df["Issue_Type"] = "FUTURE_DATE"
                 f_df["Issue_Description"] = "Joining Date is in the future"
                 issues_frames.append(f_df)
@@ -119,7 +123,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         if "SKILL_REGRESSION_FLAG" in unified_df.columns:
             regressions = unified_df[unified_df["SKILL_REGRESSION_FLAG"] == True]
             if not regressions.empty:
-                r_df = regressions[["Star ID", "Name", "Dealer Code"]].copy()
+                r_df = regressions[_base_cols].copy()
                 r_df["Issue_Type"] = "SKILL_REGRESSION"
                 if "SKILL LEVEL - PRE" in regressions.columns and "SKILL LEVEL - POST" in regressions.columns:
                     r_df["Issue_Description"] = (
@@ -136,7 +140,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 unified_df["Name"].isna() | (unified_df["Name"].astype(str).str.strip() == "")
             ]
             if not missing_name.empty:
-                m_df = missing_name[["Star ID", "Name", "Dealer Code"]].head(50).copy()
+                m_df = missing_name[_base_cols].head(50).copy()
                 m_df["Issue_Type"] = "MISSING_NAME"
                 m_df["Issue_Description"] = "Employee name is missing"
                 issues_frames.append(m_df)
@@ -145,7 +149,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         if "MISSING_PREREQUISITE_FLAG" in unified_df.columns:
             prereq = unified_df[unified_df["MISSING_PREREQUISITE_FLAG"] == True]
             if not prereq.empty:
-                p_df = prereq[["Star ID", "Name", "Dealer Code"]].head(100).copy()
+                p_df = prereq[_base_cols].head(100).copy()
                 p_df["Issue_Type"] = "MISSING_PREREQUISITE"
                 p_df["Issue_Description"] = "Skill level progression has gaps (e.g., L4 without L2)"
                 issues_frames.append(p_df)
@@ -154,7 +158,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
         if "Match_Method" in unified_df.columns:
             name_conflicts = unified_df[unified_df["Match_Method"].str.contains("NAME_CONFLICT|NAME_MISMATCH", na=False)]
             if not name_conflicts.empty:
-                n_df = name_conflicts[["Star ID", "Name", "Dealer Code"]].head(100).copy()
+                n_df = name_conflicts[_base_cols].head(100).copy()
                 n_df["Issue_Type"] = "NAME_MISMATCH"
                 n_df["Issue_Description"] = "Star ID matched but names differ between training and roster"
                 issues_frames.append(n_df)
@@ -169,20 +173,43 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                 "</div>",
                 unsafe_allow_html=True,
             )
-            dq_f1, dq_f2, dq_f3 = st.columns([2, 2, 3])
+
+            # Row 1: Issue Type | Zone | State
+            dq_r1c1, dq_r1c2, dq_r1c3 = st.columns(3)
 
             all_issue_types = sorted(issues_df["Issue_Type"].unique().tolist())
-            sel_issue_types = dq_f1.multiselect(
+            sel_issue_types = dq_r1c1.multiselect(
                 "Issue Type", all_issue_types, default=[], key="dq_filter_issue_type"
             )
 
+            all_zones = sorted(issues_df["Zone"].dropna().unique().tolist()) \
+                if "Zone" in issues_df.columns else []
+            sel_zones_dq = dq_r1c2.multiselect(
+                "Zone", all_zones, default=[], key="dq_filter_zone"
+            )
+
+            # States cascade from selected zones if any
+            if sel_zones_dq and "Zone" in issues_df.columns and "State" in issues_df.columns:
+                available_states = sorted(
+                    issues_df[issues_df["Zone"].isin(sel_zones_dq)]["State"].dropna().unique().tolist()
+                )
+            else:
+                available_states = sorted(issues_df["State"].dropna().unique().tolist()) \
+                    if "State" in issues_df.columns else []
+            sel_states_dq = dq_r1c3.multiselect(
+                "State", available_states, default=[], key="dq_filter_state"
+            )
+
+            # Row 2: Dealer Code | Name search
+            dq_r2c1, dq_r2c2, _ = st.columns([2, 3, 2])
+
             all_dealers = sorted(issues_df["Dealer Code"].dropna().unique().tolist()) \
                 if "Dealer Code" in issues_df.columns else []
-            sel_dealers_dq = dq_f2.multiselect(
+            sel_dealers_dq = dq_r2c1.multiselect(
                 "Dealer Code", all_dealers, default=[], key="dq_filter_dealer"
             )
 
-            name_search = dq_f3.text_input(
+            name_search = dq_r2c2.text_input(
                 "Search by Name", value="", placeholder="Type a name to filter...",
                 key="dq_filter_name"
             )
@@ -191,7 +218,11 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
             filtered_issues = issues_df.copy()
             if sel_issue_types:
                 filtered_issues = filtered_issues[filtered_issues["Issue_Type"].isin(sel_issue_types)]
-            if sel_dealers_dq:
+            if sel_zones_dq and "Zone" in filtered_issues.columns:
+                filtered_issues = filtered_issues[filtered_issues["Zone"].isin(sel_zones_dq)]
+            if sel_states_dq and "State" in filtered_issues.columns:
+                filtered_issues = filtered_issues[filtered_issues["State"].isin(sel_states_dq)]
+            if sel_dealers_dq and "Dealer Code" in filtered_issues.columns:
                 filtered_issues = filtered_issues[filtered_issues["Dealer Code"].isin(sel_dealers_dq)]
             if name_search.strip():
                 filtered_issues = filtered_issues[
@@ -200,16 +231,38 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
                     )
                 ]
 
+            any_filter_active = bool(
+                sel_issue_types or sel_zones_dq or sel_states_dq or sel_dealers_dq or name_search.strip()
+            )
             total_issues = len(issues_df)
             shown_issues = len(filtered_issues)
-            st.markdown(
-                f"**{shown_issues:,}** of **{total_issues:,}** data quality issues shown"
-                + (" &nbsp;·&nbsp; <span style='color:#d4183d;'>filters active</span>" if (sel_issue_types or sel_dealers_dq or name_search.strip()) else ""),
-                unsafe_allow_html=True,
-            )
+
+            count_col, export_col = st.columns([6, 2])
+            with count_col:
+                st.markdown(
+                    f"**{shown_issues:,}** of **{total_issues:,}** data quality issues shown"
+                    + (" &nbsp;·&nbsp; <span style='color:#d4183d;'>filters active</span>"
+                       if any_filter_active else ""),
+                    unsafe_allow_html=True,
+                )
+            with export_col:
+                import io
+                _buf = io.BytesIO()
+                filtered_issues.to_excel(_buf, index=False, engine="xlsxwriter")
+                _buf.seek(0)
+                st.download_button(
+                    "Export Table",
+                    data=_buf,
+                    file_name="MAHINDRA_DATA_QUALITY_ISSUES.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="dq_export_btn",
+                )
+
             st.dataframe(filtered_issues, height=350, use_container_width=True)
         else:
             st.success("No data quality issues detected.")
     else:
         st.info("No data loaded.")
+
+
 

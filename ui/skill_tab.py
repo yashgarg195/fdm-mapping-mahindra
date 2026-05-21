@@ -26,48 +26,7 @@ def _fmt_company(val):
     return f"{val * 2:.1f} / 10"
 
 
-def _render_scale_legend():
-    """Render the skill scale visual legend. Displayed on a 1-10 scale
-    (values 2, 4, 6, 8, 10) by doubling the internal 1-5 company scale.
-    """
-    return """
-    <div style="display:flex; border-radius:8px; overflow:hidden;
-                box-shadow:0 2px 8px rgba(0,0,0,0.08); margin:12px 0 18px 0;">
-        <div style="flex:1; text-align:center; padding:6px 4px; background:#FF6B6B;
-                    color:#231F20; font-size:0.72rem; line-height:1.3;
-                    border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">2</div>
-            <div style="font-weight:700;">Beginner</div>
-            <div style="font-size:0.65rem; opacity:0.85;">No formal training or untested — needs onboarding</div>
-        </div>
-        <div style="flex:1; text-align:center; padding:6px 4px; background:#FFA94D;
-                    color:#231F20; font-size:0.72rem; line-height:1.3;
-                    border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">4</div>
-            <div style="font-weight:700;">Basic</div>
-            <div style="font-size:0.65rem; opacity:0.85;">Completed L1 — can assist under supervision</div>
-        </div>
-        <div style="flex:1; text-align:center; padding:6px 4px; background:#FFD43B;
-                    color:#231F20; font-size:0.72rem; line-height:1.3;
-                    border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">6</div>
-            <div style="font-weight:700;">Intermediate</div>
-            <div style="font-size:0.65rem; opacity:0.85;">Completed L2 — can handle routine tasks independently</div>
-        </div>
-        <div style="flex:1; text-align:center; padding:6px 4px; background:#69DB7C;
-                    color:#231F20; font-size:0.72rem; line-height:1.3;
-                    border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">8</div>
-            <div style="font-weight:700;">Advanced</div>
-            <div style="font-size:0.65rem; opacity:0.85;">Completed L3 — can troubleshoot and mentor juniors</div>
-        </div>
-        <div style="flex:1; text-align:center; padding:6px 4px; background:#228BE6;
-                    color:#231F20; font-size:0.72rem; line-height:1.3;">
-            <div style="font-weight:800; font-size:1.1rem;">10</div>
-            <div style="font-weight:700;">Expert</div>
-            <div style="font-size:0.65rem; opacity:0.85;">Completed L4 — certified specialist, can lead audits</div>
-        </div>
-    </div>"""
+
 
 
 def render_skill(unified_df, filters):
@@ -96,9 +55,6 @@ def render_skill(unified_df, filters):
     df["pre_company"] = df["pre_score"].apply(_to_company)
     df["post_company"] = df["post_score"].apply(_to_company)
 
-    # ── Scale Legend ─────────────────────────────────────────────────────────
-    st.markdown("#### Mahindra Skill Rating Scale (1–10)")
-    st.markdown(_render_scale_legend(), unsafe_allow_html=True)
 
     # ── KPI Cards (company scale) ────────────────────────────────────────────
     valid_pre = df["pre_company"].dropna()
