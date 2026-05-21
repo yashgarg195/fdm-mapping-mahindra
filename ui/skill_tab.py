@@ -9,7 +9,7 @@ from config.constants import (
     BRAND_RED, BRAND_CHARCOAL, SKILL_SCORE_MAP,
     COMPANY_SCALE_MAP, COMPANY_SCALE_LABELS, COMPANY_SCALE_COLORS,
 )
-from utils.formatting_utils import style_kpi_card
+from utils.formatting_utils import style_kpi_card, style_section_header
 from analytics.skill_analytics import regression_cases
 
 
@@ -69,14 +69,14 @@ def render_skill(unified_df, filters):
             "AVG PRE-TRAINING",
             _fmt_company(avg_pre),
             "COMPANY SCALE (1-10)",
-            BRAND_CHARCOAL,
+            "#1A1A2E",
         ), unsafe_allow_html=True)
     with c2:
         st.markdown(style_kpi_card(
             "AVG POST-TRAINING",
             _fmt_company(avg_post),
             "COMPANY SCALE (1-10)",
-            BRAND_RED,
+            "#1976D2",
         ), unsafe_allow_html=True)
     with c3:
         # Uplift is also doubled for display consistency
@@ -87,11 +87,11 @@ def render_skill(unified_df, filters):
             "SKILL UPLIFT",
             f"{sign}{gain_display:.2f}",
             "POINTS ON 1-10 SCALE",
-            "#69DB7C" if gain_display >= 0 else "#FF8C00",
+            "#2E7D32" if gain_display >= 0 else "#C62828",
         ), unsafe_allow_html=True)
 
     # ── Regression Table ────────────────────────────────────────────────────
-    st.markdown("#### Skill Regression Cases")
+    st.markdown(style_section_header("Skill Regression Cases", ""), unsafe_allow_html=True)
     reg = regression_cases(df)
     if not reg.empty:
         reg_label_col, reg_btn_col = st.columns([6, 2])
@@ -102,7 +102,7 @@ def render_skill(unified_df, filters):
             reg.to_excel(_buf, index=False, engine="xlsxwriter")
             _buf.seek(0)
             st.download_button(
-                "Export Table", _buf,
+                "↓ Export Table", _buf,
                 file_name="MAHINDRA_SKILL_REGRESSIONS.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="skill_reg_export",
@@ -112,6 +112,7 @@ def render_skill(unified_df, filters):
         st.success("No skill regressions detected.")
 
     # ── Non-improving count ─────────────────────────────────────────────────
+    st.markdown(style_section_header("Non-Improving Manpower", ""), unsafe_allow_html=True)
     trained = df[df.get("Training year", pd.Series()).notna()]
     non_improving = trained[
         (trained["pre_score"] >= 0) &
@@ -127,7 +128,7 @@ def render_skill(unified_df, filters):
             non_improving.to_excel(_buf2, index=False, engine="xlsxwriter")
             _buf2.seek(0)
             st.download_button(
-                "Export Table", _buf2,
+                "↓ Export Table", _buf2,
                 file_name="MAHINDRA_NON_IMPROVING.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="skill_ni_export",
