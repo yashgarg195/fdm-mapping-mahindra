@@ -385,6 +385,8 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             progress_bar.progress(85, text="Step 5/5: Computing KPIs and generating dashboard...")
             status_text.markdown(f"**Step 5/5:** Computing KPIs across {len(unified_df):,} unified records...")
 
+            st.session_state["raw_training_count"] = len(training_df)
+            st.session_state["raw_roster_count"] = len(manpower_df)
             st.session_state["unified_df"] = unified_df
             st.session_state["duplicate_df"] = all_duplicates
             st.session_state["backlog_df"] = backlog_df
@@ -539,6 +541,20 @@ if st.session_state.get("pipeline_complete"):
         )
 
     st.markdown("---")
+    # ── Pipeline Math Summary Pill ──────────────────────────────────────────
+    raw_train = st.session_state.get("raw_training_count", 0)
+    raw_rost = st.session_state.get("raw_roster_count", 0)
+    total_raw = raw_train + raw_rost
+    st.markdown(
+        f"<div style='padding:12px 16px; background:{BRAND_LIGHT_GREY}; border-radius:8px; "
+        f"font-size:0.9rem; color:{BRAND_CHARCOAL}; margin-bottom:15px; border-left: 4px solid {BRAND_RED};'>"
+        f"<b>Data Pipeline Summary:</b> Ingested <b>{total_raw:,}</b> raw rows "
+        f"({raw_train:,} training + {raw_rost:,} roster) &rarr; "
+        f"Removed <b>{len(duplicate_df):,}</b> exact duplicates &rarr; "
+        f"Resolved into <b>{len(unified_df):,}</b> unique master records."
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
     # ── Tab Routing ─────────────────────────────────────────────────────────
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
