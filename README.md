@@ -6,7 +6,7 @@ An enterprise-grade, offline-capable identity resolution and training governance
 
 ## 🌐 Dashboard Access
 
-* **Live Web Portal:** [https://fdm-mapping-mahindra.streamlit.app/](https://fdm-mapping-mahindra.streamlit.app/)
+* **Live Web Portal:** [https://mec-training-analysis.streamlit.app/](https://mec-training-analysis.streamlit.app/)
 * **Local Server:** `http://localhost:8501`
 
 To run locally, double-click [start_dashboard.bat](file:///C:/Users/Anumay%20Pandey/Desktop/FDM%20mapping%20Mahindra/start_dashboard.bat) or run:
