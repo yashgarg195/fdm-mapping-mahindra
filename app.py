@@ -33,6 +33,7 @@ from ui.skill_tab import render_skill
 from ui.manpower_tab import render_manpower
 from ui.audit_tab import render_audit
 from ui.export_tab import render_export_tab
+from ui.help import render_help
 
 # ── Export ──────────────────────────────────────────────────────────────────
 from reports_export.excel_export import generate_excel_report
@@ -126,10 +127,13 @@ st.markdown(f"""
     .stTable * {{
         font-size: 0.98rem !important;
     }}
+    [data-testid="collapsedControl"],
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="stExpandSidebarButton"],
     [data-testid="stSidebarCollapseButton"] {{
-        top: 72px !important;
+        top: 76px !important;
+        left: 16px !important;
+        position: fixed !important;
         z-index: 1000002 !important;
     }}
     [data-testid="stExpandSidebarButton"] button,
@@ -254,9 +258,10 @@ st.markdown(f"""
         position: relative;
         background: var(--background) !important;
         color: var(--brand-charcoal) !important;
-        border-left: 1px solid #E8E8EC !important;
-        border-right: 1px solid #E8E8EC !important;
-        z-index: 1 !important;
+        border: 1px solid #E8E8EC !important;
+        border-bottom: none !important;
+        margin-bottom: -1px;
+        z-index: 10 !important;
     }}
     .st-key-topnav_tabs [role="radiogroup"] > button[kind="segmented_controlActive"]::after {{
         content: "";
@@ -458,10 +463,10 @@ st.markdown(f"""
         z-index: 1000000 !important;
     }}
     .dashboard-intro {{
-        width: calc(100% - 240px);
+        width: 100%;
         margin-top: -8px;
-        margin-right: 240px;
         margin-bottom: 18px;
+        padding-right: 120px;
     }}
     .dashboard-intro-summary {{
         width: 100%;
@@ -555,6 +560,7 @@ NAV_ITEMS = [
     ("Unique Manpower", "Unique Manpower"),
     ("Audit & Exceptions", "Audit & Exceptions"),
     ("Exports", "Exports"),
+    ("Help & Guide", "Help & Guide"),
 ]
 NAV_KEYS = [key for key, _ in NAV_ITEMS]
 
@@ -582,7 +588,7 @@ _selected_tab = st.segmented_control(
     "Dashboard sections",
     options=NAV_KEYS,
     default=st.session_state["current_tab"],
-    required=True,
+    selection_mode="single",
     key="topnav_tabs",
     label_visibility="collapsed",
 )
@@ -756,6 +762,7 @@ if sidebar_result["run_pipeline"] and sidebar_result["uploaded_files"]:
             f"{stats.get('unresolved_count', 0):,} unresolved | "
             f"0 rows lost"
         )
+        st.session_state["collapse_sidebar_now"] = True
         time.sleep(0.5)
         st.rerun()
 
@@ -943,29 +950,54 @@ if st.session_state.get("pipeline_complete"):
             kpis,
             st.session_state.get("stats", {}),
         )
+    elif page == "Help & Guide":
+        render_help()
 
 
 else:
-    # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────
-    st.markdown(f"""
-    <div style="text-align:center; padding:80px 20px;">
-        <div style="background:{BRAND_RED}; color:white; font-size:4rem; font-weight:900;
-                    width:100px; height:100px; display:flex; align-items:center; justify-content:center;
-                    border-radius:16px; margin:auto; box-shadow: 0 4px 12px rgba(210,35,42,0.4);">M</div>
-        <h2 style="color:{BRAND_CHARCOAL} !important; margin-top:20px; font-weight: 700;">
-            Enterprise Dashboard
-        </h2>
-        <p style="color:#8B8BA7 !important; font-size:13px; max-width:600px; margin:auto;">
-            Upload your Manpower Roster and Training Data files using the sidebar.
-            Assign file types and click <b>Run Pipeline</b> to process.
-        </p>
-        <div style="margin-top:30px; padding:16px; background:#F7F7F9; border: 1px solid #E8E8EC;
-                    border-radius:8px; display:inline-block;">
-            <div style="font-size:11px; color:#6B6B8D !important;">
-                <b>Supported:</b> .xlsx, .csv &nbsp;·&nbsp; <b>Max files:</b> 4 &nbsp;·&nbsp;
-                <b>Max size:</b> 60MB per file<br>
-                <b>100% Offline</b> &nbsp;·&nbsp; <b>Zero Row Loss</b> &nbsp;·&nbsp; <b>Deterministic</b>
+    if page == "Help & Guide":
+        render_help()
+    else:
+        # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────
+        st.markdown(f"""
+        <div style="text-align:center; padding:80px 20px;">
+            <div style="background:{BRAND_RED}; color:white; font-size:4rem; font-weight:900;
+                        width:100px; height:100px; display:flex; align-items:center; justify-content:center;
+                        border-radius:16px; margin:auto; box-shadow: 0 4px 12px rgba(210,35,42,0.4);">M</div>
+            <h2 style="color:{BRAND_CHARCOAL} !important; margin-top:20px; font-weight: 700;">
+                Enterprise Dashboard
+            </h2>
+            <p style="color:#8B8BA7 !important; font-size:13px; max-width:600px; margin:auto;">
+                Upload your Manpower Roster and Training Data files using the sidebar.
+                Assign file types and click <b>Run Pipeline</b> to process.
+            </p>
+            <div style="margin-top:30px; padding:16px; background:#F7F7F9; border: 1px solid #E8E8EC;
+                        border-radius:8px; display:inline-block;">
+                <div style="font-size:11px; color:#6B6B8D !important;">
+                    <b>Supported:</b> .xlsx, .csv &nbsp;·&nbsp; <b>Max files:</b> 4 &nbsp;·&nbsp;
+                    <b>Max size:</b> 60MB per file<br>
+                    <b>100% Offline</b> &nbsp;·&nbsp; <b>Zero Row Loss</b> &nbsp;·&nbsp; <b>Deterministic</b>
+                </div>
             </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+
+if st.session_state.pop("collapse_sidebar_now", False):
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+        const doc = window.parent.document;
+        // Find the sidebar itself
+        const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+        if (sidebar && sidebar.getAttribute('aria-expanded') !== 'false') {
+            // Find the collapse button and click it
+            const collapseBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"], button[aria-label="Collapse sidebar"]');
+            if (collapseBtn) {
+                collapseBtn.click();
+            }
+        }
+        </script>
+        """,
+        height=0, width=0
+    )
