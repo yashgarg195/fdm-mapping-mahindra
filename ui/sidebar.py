@@ -52,7 +52,57 @@ def render_sidebar():
             type="primary",
         )
 
+    # ── Help & Guide ────────────────────────────────────────────────────────
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("Help & Guide", expanded=False):
+        st.markdown("""
+**How to use this dashboard:**
+
+1. **Upload Files** — Use the file uploaders above to upload your Manpower Roster and Training Data Excel files.
+2. **Assign Types** — Set the correct type for each file (Manpower Roster or Training Data).
+3. **Run Pipeline** — Click **Run Pipeline** to process the data through the 7-pass identity resolution engine.
+4. **Apply Filters** — Use the Global Filters panel on the main screen to narrow down by Zone, State, Designation, or Dealer.
+5. **Explore Tabs** — Navigate across tabs to view analytics.
+6. **Export** — Go to the **Exports** tab to download individual or combined reports.
+
+---
+
+**Tabs at a Glance:**
+
+| Tab | Purpose |
+|-----|---------|
+| Overview | National KPIs + All-India graphical dashboard |
+| Pending & Nominations | Backlog priority list |
+| Skill Analytics | Pre/post training skill scores (1–10 scale) |
+| Unique Manpower | State/zone headcount breakdown |
+| Audit & Exceptions | Duplicate log, unresolved queue, data quality |
+| Exports | Download all reports |
+
+---
+
+**Confidence Tiers:**
+
+- 🟢 **HIGH** — Exact ID match with matching name
+- 🟡 **MEDIUM** — Strong match with minor name variation
+- 🟠 **LOW** — Weak match — requires supervisor review
+- 🔴 **FUZZY** — Borderline probabilistic match
+- ⬛ **UNRESOLVED** — Could not be matched — excluded from KPIs
+
+---
+
+**Skill Scale (1–10):**
+
+| Score | Level | Meaning |
+|-------|-------|---------|
+| 2 | Beginner | Untested / No training |
+| 4 | Basic | Completed L1 |
+| 6 | Intermediate | Completed L2 |
+| 8 | Advanced | Completed L3 |
+| 10 | Expert | Completed L4 |
+""")
+
     return result
+
 
 
 def apply_filters(df, filters):

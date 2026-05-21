@@ -519,6 +519,47 @@ def resolve_star_ids(training_df, manpower_df):
                 unified_df.loc[mask, "VALIDATED_SKILL_LEVEL"] = validated
                 unified_df.loc[mask, "MISSING_PREREQUISITE_FLAG"] = missing
 
+        # ── Technician Enrichment Columns ─────────────────────────────────
+        # Age from DOB
+        if "DOB" in unified_df.columns:
+            try:
+                dob_series = pd.to_datetime(unified_df["DOB"], errors="coerce")
+                today = pd.Timestamp("today").normalize()
+                unified_df["Age"] = ((today - dob_series).dt.days / 365.25).round(0).astype("Int64")
+            except Exception:
+                unified_df["Age"] = pd.NA
+
+        # Modules trained and training history count per Star ID
+        if "Star ID" in unified_df.columns:
+            product_col = next(
+                (c for c in ["PRODUCT TRAINED ON", "Product Trained On", "PRODUCT_TRAINED_ON"]
+                 if c in unified_df.columns),
+                None,
+            )
+            grouped_sid = unified_df.groupby("Star ID")
+
+            # Modules: unique non-null product values joined as a string
+            if product_col:
+                modules_map = grouped_sid[product_col].apply(
+                    lambda s: ", ".join(sorted(s.dropna().astype(str).unique()))
+                )
+                unified_df["Modules_Trained"] = unified_df["Star ID"].map(modules_map)
+            else:
+                unified_df["Modules_Trained"] = ""
+
+            # Training history count: rows with a Training year value per Star ID
+            if "Training year" in unified_df.columns:
+                history_map = (
+                    unified_df[unified_df["Training year"].notna()]
+                    .groupby("Star ID")["Training year"]
+                    .count()
+                )
+                unified_df["Training_History_Count"] = (
+                    unified_df["Star ID"].map(history_map).fillna(0).astype(int)
+                )
+            else:
+                unified_df["Training_History_Count"] = 0
+
         # ── Cross-ID Duplicate Detection ─────────────────────────────────
         unified_df = _detect_cross_id_duplicates(unified_df)
 

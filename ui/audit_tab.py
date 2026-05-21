@@ -101,7 +101,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
     else:
         st.success("No unresolved records. All identities mapped.")
 
-    # ── Data Quality Issues (VECTORIZED) ────────────────────────────────────
+    # ── Data Quality Issues (with local filters) ─────────────────────────────
     st.markdown("#### Data Quality Issues")
     if unified_df is not None and not unified_df.empty:
         issues_frames = []
@@ -161,9 +161,55 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
 
         if issues_frames:
             issues_df = pd.concat(issues_frames, ignore_index=True)
-            st.markdown(f"**{len(issues_df)} data quality issues found**")
-            st.dataframe(issues_df, height=300)
+
+            # ── Local filters ────────────────────────────────────────────────
+            st.markdown(
+                "<div style='background:#f3f3f5; border-radius:8px; padding:12px 16px; margin-bottom:12px;'>"
+                "<span style='font-size:0.82rem; font-weight:600; color:#717182;'>FILTER DATA QUALITY TABLE</span>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            dq_f1, dq_f2, dq_f3 = st.columns([2, 2, 3])
+
+            all_issue_types = sorted(issues_df["Issue_Type"].unique().tolist())
+            sel_issue_types = dq_f1.multiselect(
+                "Issue Type", all_issue_types, default=[], key="dq_filter_issue_type"
+            )
+
+            all_dealers = sorted(issues_df["Dealer Code"].dropna().unique().tolist()) \
+                if "Dealer Code" in issues_df.columns else []
+            sel_dealers_dq = dq_f2.multiselect(
+                "Dealer Code", all_dealers, default=[], key="dq_filter_dealer"
+            )
+
+            name_search = dq_f3.text_input(
+                "Search by Name", value="", placeholder="Type a name to filter...",
+                key="dq_filter_name"
+            )
+
+            # Apply local filters
+            filtered_issues = issues_df.copy()
+            if sel_issue_types:
+                filtered_issues = filtered_issues[filtered_issues["Issue_Type"].isin(sel_issue_types)]
+            if sel_dealers_dq:
+                filtered_issues = filtered_issues[filtered_issues["Dealer Code"].isin(sel_dealers_dq)]
+            if name_search.strip():
+                filtered_issues = filtered_issues[
+                    filtered_issues["Name"].astype(str).str.contains(
+                        name_search.strip(), case=False, na=False
+                    )
+                ]
+
+            total_issues = len(issues_df)
+            shown_issues = len(filtered_issues)
+            st.markdown(
+                f"**{shown_issues:,}** of **{total_issues:,}** data quality issues shown"
+                + (" &nbsp;·&nbsp; <span style='color:#d4183d;'>filters active</span>" if (sel_issue_types or sel_dealers_dq or name_search.strip()) else ""),
+                unsafe_allow_html=True,
+            )
+            st.dataframe(filtered_issues, height=350, use_container_width=True)
         else:
             st.success("No data quality issues detected.")
     else:
         st.info("No data loaded.")
+

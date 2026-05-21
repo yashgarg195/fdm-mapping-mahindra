@@ -32,6 +32,7 @@ from ui.backlog_tab import render_backlog
 from ui.skill_tab import render_skill
 from ui.manpower_tab import render_manpower
 from ui.audit_tab import render_audit
+from ui.export_tab import render_export_tab
 
 # ── Export ──────────────────────────────────────────────────────────────────
 from export.excel_export import generate_excel_report
@@ -427,7 +428,6 @@ if st.session_state.get("pipeline_complete"):
     duplicate_df = st.session_state["duplicate_df"]
     backlog_df = st.session_state["backlog_df"]
     nomination_df = st.session_state["nomination_df"]
-    kpis = st.session_state["kpis"]
 
     # ── Main Area Filters ───────────────────────────────────────────────────
     st.markdown("### Global Filters")
@@ -502,44 +502,19 @@ if st.session_state.get("pipeline_complete"):
     # apply_filters already handles empty dicts/lists (returns full df).
     df_filtered = apply_filters(unified_df, st.session_state["global_filters"])
 
-    # ── Top Action Bar ──────────────────────────────────────────────────────
+    # Recompute KPIs from filtered data so Overview cards reflect active filters.
+    kpis = compute_all_kpis(df_filtered)
+
+    # ── Top Action Bar (filter status only — downloads moved to Exports tab) ───
     st.markdown("---")
-    act_col1, act_col2 = st.columns([4, 8])
-    with act_col1:
-        # Generate Excel lazily — the buffer is prepared once per unique filter
-        # state and cached by Streamlit so it does not block every render.
-        @st.cache_data(show_spinner=False)
-        def _get_excel_report(filter_key, _udf, _bdf, _ddf, _alog):
-            """Cache-keyed Excel generation — reruns only when filters change."""
-            return generate_excel_report(_udf, _bdf, _ddf, _alog)
-
-        # Build a stable, lightweight cache key from the applied filters.
-        _filter_key = str(sorted(st.session_state["global_filters"].items()))
-
-        excel_buf = _get_excel_report(
-            _filter_key,
-            df_filtered,
-            backlog_df,
-            duplicate_df,
-            st.session_state.get("audit_log", []),
-        )
-
-        st.download_button(
-            "Download Full Report (8 Sheets)",
-            excel_buf,
-            file_name="MAHINDRA_TRAINING_ANALYTICS_REPORT.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    with act_col2:
-        active_filters = {k: v for k, v in st.session_state["global_filters"].items() if v}
-        filter_label = "filters applied" if active_filters else "no filters active — showing all data"
-        st.markdown(
-            f"<div style='padding:8px 14px; background:var(--muted); border-radius:6px; "
-            f"display:inline-block; font-size:0.85rem; color:var(--muted-foreground);'>"
-            f"Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows &nbsp;·&nbsp; {filter_label}</div>",
-            unsafe_allow_html=True,
-        )
-
+    active_filters = {k: v for k, v in st.session_state["global_filters"].items() if v}
+    filter_label = "filters applied" if active_filters else "no filters active — showing all data"
+    st.markdown(
+        f"<div style='padding:8px 14px; background:var(--muted); border-radius:6px; "
+        f"display:inline-block; font-size:0.85rem; color:var(--muted-foreground);'>"
+        f"Showing <b>{len(df_filtered):,}</b> / <b>{len(unified_df):,}</b> rows &nbsp;·&nbsp; {filter_label}</div>",
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
     # ── Pipeline Math Summary Pill ──────────────────────────────────────────
     raw_train = st.session_state.get("raw_training_count", 0)
@@ -557,12 +532,13 @@ if st.session_state.get("pipeline_complete"):
     )
 
     # ── Tab Routing ─────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "Overview",
         "Pending & Nominations",
         "Skill Analytics",
         "Unique Manpower",
         "Audit & Exceptions",
+        "Exports",
     ])
 
     with tab1:
@@ -584,6 +560,16 @@ if st.session_state.get("pipeline_complete"):
             else pd.DataFrame()
         )
         render_audit(df_filtered, duplicate_df, unresolved_df)
+
+    with tab6:
+        render_export_tab(
+            df_filtered, backlog_df, nomination_df, duplicate_df,
+            st.session_state.get("audit_log", []),
+            st.session_state["global_filters"],
+            kpis,
+            st.session_state.get("stats", {}),
+        )
+
 
 else:
     # ── Landing Page — Red Mahindra M logo, dark text ────────────────────────

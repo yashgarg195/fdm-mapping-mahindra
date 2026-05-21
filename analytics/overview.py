@@ -65,3 +65,75 @@ def mom_trend(unified_df):
         return grouped.sort_values("Month")
     except Exception:
         return pd.DataFrame(columns=["Month", "Training_Count"])
+
+
+def l_level_breakdown(unified_df):
+    """Return stacked L-level counts per FY for All-India chart.
+    Columns: FY, L1, L2, L3, L4, Untrained.
+    """
+    cols = ["FY", "L1", "L2", "L3", "L4", "Untrained"]
+    if unified_df is None or unified_df.empty or "Training year" not in unified_df.columns:
+        return pd.DataFrame(columns=cols)
+    df = unified_df.copy()
+    has_post = "SKILL LEVEL - POST" in df.columns
+    has_sid = "Star ID" in df.columns
+    rows = []
+    for fy, group in df.groupby("Training year"):
+        if not has_post:
+            rows.append({"FY": fy, "L1": 0, "L2": 0, "L3": 0, "L4": 0, "Untrained": len(group)})
+            continue
+        counts = group["SKILL LEVEL - POST"].value_counts().to_dict()
+        rows.append({
+            "FY": fy,
+            "L1": counts.get("L1", 0),
+            "L2": counts.get("L2", 0),
+            "L3": counts.get("L3", 0),
+            "L4": counts.get("L4", 0),
+            "Untrained": counts.get("NO TEST", 0) + counts.get("0", 0),
+        })
+    result = pd.DataFrame(rows, columns=cols)
+    return result.sort_values("FY")
+
+
+def zone_breakdown(unified_df):
+    """Zone-wise breakdown: trained, untrained, pending, and L1-L4 counts."""
+    cols = ["Zone", "Total", "Trained", "Untrained", "Pending", "L1", "L2", "L3", "L4"]
+    if unified_df is None or unified_df.empty or "Zone" not in unified_df.columns:
+        return pd.DataFrame(columns=cols)
+    df = unified_df.copy()
+    has_sid = "Star ID" in df.columns
+    has_post = "SKILL LEVEL - POST" in df.columns
+    has_status = "Training_Status" in df.columns
+    rows = []
+    for zone, group in df.groupby("Zone"):
+        total = group["Star ID"].nunique() if has_sid else len(group)
+        trained = group[group["Training year"].notna()]["Star ID"].nunique() \
+            if has_sid and "Training year" in group.columns else 0
+        untrained = total - trained
+        pending = group[group["Training_Status"].isin(["PENDING", "ELIGIBLE"])]["Star ID"].nunique() \
+            if has_sid and has_status else 0
+        level_counts = group["SKILL LEVEL - POST"].value_counts().to_dict() if has_post else {}
+        rows.append({
+            "Zone": zone, "Total": total, "Trained": trained, "Untrained": untrained, "Pending": pending,
+            "L1": level_counts.get("L1", 0), "L2": level_counts.get("L2", 0),
+            "L3": level_counts.get("L3", 0), "L4": level_counts.get("L4", 0),
+        })
+    return pd.DataFrame(rows, columns=cols)
+
+
+def state_coverage_top(unified_df, n=10):
+    """Top N states by training coverage percentage."""
+    cols = ["State", "Total", "Trained", "Coverage_Pct"]
+    if unified_df is None or unified_df.empty or "State" not in unified_df.columns:
+        return pd.DataFrame(columns=cols)
+    df = unified_df.copy()
+    has_sid = "Star ID" in df.columns
+    rows = []
+    for state, group in df.groupby("State"):
+        total = group["Star ID"].nunique() if has_sid else len(group)
+        trained = group[group["Training year"].notna()]["Star ID"].nunique() \
+            if has_sid and "Training year" in group.columns else 0
+        pct = round(trained / max(total, 1) * 100, 1)
+        rows.append({"State": state, "Total": total, "Trained": trained, "Coverage_Pct": pct})
+    result = pd.DataFrame(rows, columns=cols)
+    return result.sort_values("Coverage_Pct", ascending=False).head(n)

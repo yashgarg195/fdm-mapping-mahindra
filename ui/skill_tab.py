@@ -18,49 +18,52 @@ def _to_company(internal_score):
 
 
 def _fmt_company(val):
-    """Format a company-scale float to a display string like '3.2 / 5'."""
+    """Format a company-scale value as a 1-10 display string.
+    The underlying company scale is 1-5; we simply double for display only.
+    """
     if val is None or pd.isna(val):
         return "N/A"
-    return f"{val:.1f} / 5"
+    return f"{val * 2:.1f} / 10"
 
 
 def _render_scale_legend():
-    """Render the 1-5 company scale visual legend as an HTML bar."""
+    """Render the skill scale visual legend. Displayed on a 1-10 scale
+    (values 2, 4, 6, 8, 10) by doubling the internal 1-5 company scale.
+    """
     return """
     <div style="display:flex; border-radius:8px; overflow:hidden;
                 box-shadow:0 2px 8px rgba(0,0,0,0.08); margin:12px 0 18px 0;">
         <div style="flex:1; text-align:center; padding:6px 4px; background:#FF6B6B;
                     color:#231F20; font-size:0.72rem; line-height:1.3;
                     border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">1</div>
+            <div style="font-weight:800; font-size:1.1rem;">2</div>
             <div style="font-weight:700;">Beginner</div>
             <div style="font-size:0.65rem; opacity:0.85;">No formal training or untested — needs onboarding</div>
         </div>
         <div style="flex:1; text-align:center; padding:6px 4px; background:#FFA94D;
                     color:#231F20; font-size:0.72rem; line-height:1.3;
                     border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">2</div>
+            <div style="font-weight:800; font-size:1.1rem;">4</div>
             <div style="font-weight:700;">Basic</div>
-            <div style="font-size:0.65rem; opacity:0.85;">Completed L1 foundations — can assist under supervision</div>
+            <div style="font-size:0.65rem; opacity:0.85;">Completed L1 — can assist under supervision</div>
         </div>
         <div style="flex:1; text-align:center; padding:6px 4px; background:#FFD43B;
                     color:#231F20; font-size:0.72rem; line-height:1.3;
                     border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">3</div>
+            <div style="font-weight:800; font-size:1.1rem;">6</div>
             <div style="font-weight:700;">Intermediate</div>
             <div style="font-size:0.65rem; opacity:0.85;">Completed L2 — can handle routine tasks independently</div>
         </div>
         <div style="flex:1; text-align:center; padding:6px 4px; background:#69DB7C;
                     color:#231F20; font-size:0.72rem; line-height:1.3;
                     border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">4</div>
+            <div style="font-weight:800; font-size:1.1rem;">8</div>
             <div style="font-weight:700;">Advanced</div>
             <div style="font-size:0.65rem; opacity:0.85;">Completed L3 — can troubleshoot and mentor juniors</div>
         </div>
         <div style="flex:1; text-align:center; padding:6px 4px; background:#228BE6;
-                    color:#231F20; font-size:0.72rem; line-height:1.3;
-                    border-right:2px solid white;">
-            <div style="font-weight:800; font-size:1.1rem;">5</div>
+                    color:#231F20; font-size:0.72rem; line-height:1.3;">
+            <div style="font-weight:800; font-size:1.1rem;">10</div>
             <div style="font-weight:700;">Expert</div>
             <div style="font-size:0.65rem; opacity:0.85;">Completed L4 — certified specialist, can lead audits</div>
         </div>
@@ -94,7 +97,7 @@ def render_skill(unified_df, filters):
     df["post_company"] = df["post_score"].apply(_to_company)
 
     # ── Scale Legend ─────────────────────────────────────────────────────────
-    st.markdown("#### Mahindra Skill Rating Scale (1–5)")
+    st.markdown("#### Mahindra Skill Rating Scale (1–10)")
     st.markdown(_render_scale_legend(), unsafe_allow_html=True)
 
     # ── KPI Cards (company scale) ────────────────────────────────────────────
@@ -108,24 +111,26 @@ def render_skill(unified_df, filters):
         st.markdown(style_kpi_card(
             "AVG PRE-TRAINING",
             _fmt_company(avg_pre),
-            "COMPANY SCALE (1-5)",
+            "COMPANY SCALE (1-10)",
             BRAND_CHARCOAL,
         ), unsafe_allow_html=True)
     with c2:
         st.markdown(style_kpi_card(
             "AVG POST-TRAINING",
             _fmt_company(avg_post),
-            "COMPANY SCALE (1-5)",
+            "COMPANY SCALE (1-10)",
             BRAND_RED,
         ), unsafe_allow_html=True)
     with c3:
+        # Uplift is also doubled for display consistency
         gain = avg_post - avg_pre if avg_pre and avg_post else 0
-        sign = "+" if gain >= 0 else ""
+        gain_display = gain * 2
+        sign = "+" if gain_display >= 0 else ""
         st.markdown(style_kpi_card(
             "SKILL UPLIFT",
-            f"{sign}{gain:.2f}",
-            "POINTS ON 1-5 SCALE",
-            "#69DB7C" if gain >= 0 else "#FF8C00",
+            f"{sign}{gain_display:.2f}",
+            "POINTS ON 1-10 SCALE",
+            "#69DB7C" if gain_display >= 0 else "#FF8C00",
         ), unsafe_allow_html=True)
 
     # ── Regression Table ────────────────────────────────────────────────────
