@@ -292,10 +292,11 @@ st.markdown(f"""
         color: var(--foreground) !important;
     }}
     header[data-testid="stHeader"] {{
-        display: none !important;
+        visibility: hidden;
     }}
-    .stApp > header {{
-        display: none !important;
+    header[data-testid="stHeader"] [data-testid="collapsedControl"],
+    header[data-testid="stHeader"] [data-testid="stExpandSidebarButton"] {{
+        visibility: visible !important;
     }}
     /* ── Sidebar ───────────────────────────────────────── */
     section[data-testid="stSidebar"] {{
