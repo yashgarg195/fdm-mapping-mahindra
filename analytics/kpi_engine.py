@@ -50,7 +50,7 @@ def compute_all_kpis(unified_df):
     if INCLUDE_LOW_IN_KPIS:
         included_conf.add("LOW")
     if INCLUDE_FUZZY_IN_KPIS:
-        included_conf.add("FUZZY")
+        included_conf.add("POSSIBLE MATCH")
 
     conf_col = "Match_Confidence"
     if conf_col in df.columns:

@@ -303,7 +303,7 @@ def _match_row(t_row, indexes):
             elif best_comp >= CONFIDENCE_THRESHOLD_LOW:
                 conf = "LOW"
             else:
-                conf = "FUZZY"
+                conf = "POSSIBLE MATCH"
             result.update({
                 "Match_Method": "PASS6_PROBABILISTIC",
                 "Match_Confidence": conf,
@@ -372,7 +372,7 @@ def _detect_cross_id_duplicates(unified_df):
                     mask = unified_df["Star ID"] == sid1
                     unified_df.loc[mask, "CROSS_ID_DUPLICATE_SUSPECT"] = True
                     existing = unified_df.loc[mask, "CROSS_ID_DUPLICATE_NOTE"].iloc[0] if mask.any() else ""
-                    note = f"Similar to Star ID {sid2} (fuzzy={score}%)"
+                    note = f"Similar to Star ID {sid2} (possible match={score}%)"
                     if existing and note not in existing:
                         note = existing + "; " + note
                     unified_df.loc[mask, "CROSS_ID_DUPLICATE_NOTE"] = note

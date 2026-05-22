@@ -6,7 +6,7 @@ An enterprise-grade, offline-capable identity resolution and training governance
 
 ## 🌐 Dashboard Access
 
-* **Live Web Portal:** [https://mec-training-analysis.streamlit.app/](https://mec-training-analysis.streamlit.app/)
+* **Live Web Portal:** [https://mec-data-mapping.streamlit.app/](https://mec-data-mapping.streamlit.app/)
 * **Local Server:** `http://localhost:8501`
 
 To run locally, double-click `start_dashboard.bat` or run the following in your terminal:

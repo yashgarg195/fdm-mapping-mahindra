@@ -119,7 +119,7 @@ def render_audit(unified_df, duplicate_df, unresolved_df):
             st.markdown(f"**{len(suspects)} suspect duplicate records** — different Star IDs, very similar names at same dealer")
 
             # ── Enrich with suspected match's identity ───────────────────────
-            # CROSS_ID_DUPLICATE_NOTE contains "Similar to Star ID <SID> (fuzzy=xx%)"
+            # CROSS_ID_DUPLICATE_NOTE contains "Similar to Star ID <SID> (possible match=xx%)"
             # Parse the suspected Star ID and look up their details in unified_df.
             if "CROSS_ID_DUPLICATE_NOTE" in suspects.columns and "Star ID" in unified_df.columns:
                 import re

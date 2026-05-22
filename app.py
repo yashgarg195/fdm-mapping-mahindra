@@ -83,6 +83,10 @@ st.markdown(f"""
         font-family: 'Inter', 'Segoe UI', sans-serif;
         font-size: 18px;
     }}
+    hr {
+        border-top: 3px solid var(--border) !important;
+        margin: 1.5rem 0 !important;
+    }
     .stApp {{
         background-color: var(--input-background);
         color: var(--foreground);

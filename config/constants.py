@@ -69,13 +69,14 @@ TRAINING_STATUSES = [
 ]
 
 # ── CONFIDENCE TIERS ─────────────────────────────────────────────────────────
-CONFIDENCE_ORDER = ["HIGH", "MEDIUM", "LOW", "FUZZY", "UNRESOLVED"]
+CONFIDENCE_ORDER = ["HIGH", "MEDIUM", "LOW", "POSSIBLE MATCH", "UNRESOLVED"]
+
 CONFIDENCE_COLORS = {
-    "HIGH":       "#E8F5E9",
-    "MEDIUM":     "#FFF8E1",
-    "LOW":        "#FFF3E0",
-    "FUZZY":      "#F3E5F5",
-    "UNRESOLVED": "#FFEBEE",
+    "HIGH":        "#E8F5E9",
+    "MEDIUM":      "#FFF3E0",
+    "LOW":         "#FFEBEE",
+    "POSSIBLE MATCH":      "#F3E5F5",
+    "UNRESOLVED":  "#F5F5F5"
 }
 
 # ── RECALL INTERVAL BUCKETS (legacy reference, replaced by rolling backlog) ──
