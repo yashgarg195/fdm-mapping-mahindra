@@ -299,7 +299,9 @@ st.markdown(f"""
         visibility: hidden;
     }}
     header[data-testid="stHeader"] [data-testid="collapsedControl"],
-    header[data-testid="stHeader"] [data-testid="stExpandSidebarButton"] {{
+    header[data-testid="stHeader"] [data-testid="stExpandSidebarButton"],
+    [data-testid="stSidebarCollapseButton"],
+    header[data-testid="stHeader"] button {{
         visibility: visible !important;
     }}
     /* ── Sidebar ───────────────────────────────────────── */

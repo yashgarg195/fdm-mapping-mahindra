@@ -40,11 +40,9 @@ def _section(title, subtitle="", first_section=False):
     st.markdown(style_section_header(title, subtitle, first_section), unsafe_allow_html=True)
 
 
-def render_overview(unified_df, kpis, filters):
-    """Render the Overview tab with KPI cards and All-India graphical dashboard."""
-
+def _render_kpis(kpis, first_section=False):
     # ── Section A: KPI Summary Cards ─────────────────────────────────────────
-    _section("National KPI Summary", "National KPIs · Training coverage · Zone and state summary", first_section=True)
+    _section("National KPI Summary", "National KPIs · Training coverage · Zone and state summary", first_section=first_section)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -94,12 +92,17 @@ def render_overview(unified_df, kpis, filters):
             "REGRESSIONS + FUTURE DATES", "#F57C00",
         ), unsafe_allow_html=True)
 
+
+def render_overview(unified_df, kpis, filters):
+    """Render the Overview tab with KPI cards and All-India graphical dashboard."""
+
     if unified_df is None or unified_df.empty:
+        _render_kpis(kpis, first_section=True)
         st.info("Run the pipeline to view graphical analytics.")
         return
 
     # ── Section B: Trained / Untrained / Pending Stacked Bar ─────────────────
-    _section("All-India Manpower Status")
+    _section("All-India Manpower Status", first_section=True)
 
     nat = national_summary(unified_df)
     total_emp = nat.get("total_employees", 0)
@@ -322,3 +325,6 @@ def render_overview(unified_df, kpis, filters):
         )
     else:
         st.info("No state-level data available.")
+
+    st.markdown("<br><hr><br>", unsafe_allow_html=True)
+    _render_kpis(kpis, first_section=False)
