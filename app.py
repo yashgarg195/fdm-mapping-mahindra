@@ -551,7 +551,7 @@ if is_app_loaded:
         <div class="app-topnav-brand">
             <div class="app-topnav-mark"></div>
             <div>
-                <div class="app-topnav-title">MAHINDRA ENTERPRISE DASHBOARD</div>
+                <div class="app-topnav-title">MAHINDRA ANALYTICS DASHBOARD</div>
                 <div class="app-topnav-subtitle">Training Analytics & Manpower Intelligence</div>
             </div>
         </div>
@@ -951,7 +951,7 @@ else:
                         width:100px; height:100px; display:flex; align-items:center; justify-content:center;
                         border-radius:16px; margin:auto; box-shadow: 0 4px 12px rgba(210,35,42,0.4);">M</div>
             <h2 style="color:var(--foreground) !important; margin-top:20px; font-weight: 700;">
-                Enterprise Dashboard
+                Analytics Dashboard
             </h2>
             <p style="color:var(--muted-foreground) !important; font-size:13px; max-width:600px; margin:auto;">
                 Upload your Manpower Roster and Training Data files using the sidebar.
