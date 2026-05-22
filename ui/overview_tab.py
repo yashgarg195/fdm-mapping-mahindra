@@ -53,7 +53,7 @@ def _render_kpis(kpis, first_section=False):
     with c2:
         st.markdown(style_kpi_card(
             "TRAINING COVERAGE", format_pct(kpis.get("coverage_pct", 0)),
-            "HIGH + MEDIUM CONFIDENCE", "#2E7D32",
+            "VERIFIED MATCHES", "#2E7D32",
         ), unsafe_allow_html=True)
     with c3:
         st.markdown(style_kpi_card(
