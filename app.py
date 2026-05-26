@@ -891,6 +891,9 @@ if st.session_state.get("pipeline_complete"):
 
     # ── Apply committed filters to the data ─────────────────────────────────
     df_filtered = apply_filters(unified_df, st.session_state["global_filters"])
+    backlog_filtered = apply_filters(backlog_df, st.session_state["global_filters"])
+    nomination_filtered = apply_filters(nomination_df, st.session_state["global_filters"])
+    duplicate_filtered = apply_filters(duplicate_df, st.session_state["global_filters"])
 
     # Recompute KPIs from filtered data so Overview cards reflect active filters.
     kpis = compute_all_kpis(df_filtered)
@@ -909,7 +912,7 @@ if st.session_state.get("pipeline_complete"):
         render_overview(df_filtered, kpis, st.session_state["global_filters"])
 
     elif page == "Pending & Nominations":
-        render_backlog(backlog_df, nomination_df, st.session_state["global_filters"])
+        render_backlog(backlog_filtered, nomination_filtered, st.session_state["global_filters"])
 
     elif page == "Skill Analytics":
         render_skill(df_filtered, st.session_state["global_filters"])
@@ -919,15 +922,15 @@ if st.session_state.get("pipeline_complete"):
 
     elif page == "Audit & Exceptions":
         unresolved_df = (
-            unified_df[unified_df["Match_Confidence"] == "UNRESOLVED"]
-            if "Match_Confidence" in unified_df.columns
+            df_filtered[df_filtered["Match_Confidence"] == "UNRESOLVED"]
+            if "Match_Confidence" in df_filtered.columns
             else pd.DataFrame()
         )
-        render_audit(df_filtered, duplicate_df, unresolved_df)
+        render_audit(df_filtered, duplicate_filtered, unresolved_df)
 
     elif page == "Exports":
         render_export_tab(
-            df_filtered, backlog_df, nomination_df, duplicate_df,
+            df_filtered, backlog_filtered, nomination_filtered, duplicate_filtered,
             st.session_state.get("audit_log", []),
             st.session_state["global_filters"],
             kpis,

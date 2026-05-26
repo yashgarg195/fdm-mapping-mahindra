@@ -106,9 +106,15 @@ def render_overview(unified_df, kpis, filters):
 
     nat = national_summary(unified_df)
     total_emp = nat.get("total_employees", 0)
-    trained_emp = nat.get("total_trained", 0)
-    untrained_emp = nat.get("total_untrained", 0)
-    pending_emp = nat.get("total_pending", 0)
+    
+    if "Training_Status" in unified_df.columns:
+        trained_emp = unified_df[unified_df["Training_Status"].isin(["COMPLETED", "ATTENDED"])]["Star ID"].nunique() if "Star ID" in unified_df.columns else 0
+        pending_emp = unified_df[unified_df["Training_Status"].isin(["PENDING", "ELIGIBLE"])]["Star ID"].nunique() if "Star ID" in unified_df.columns else 0
+        untrained_emp = unified_df[unified_df["Training_Status"].isin(["NOT_TRAINED", "NOT_ELIGIBLE"])]["Star ID"].nunique() if "Star ID" in unified_df.columns else 0
+    else:
+        trained_emp = nat.get("total_trained", 0)
+        pending_emp = nat.get("total_pending", 0)
+        untrained_emp = max(nat.get("total_untrained", 0) - pending_emp, 0)
 
     bar_col, stat_col = st.columns([1, 1])
 
@@ -117,7 +123,7 @@ def render_overview(unified_df, kpis, filters):
             fig_bar = go.Figure()
             fig_bar.add_trace(go.Bar(name="Trained", x=[trained_emp], y=["Status"], orientation='h', marker_color="#2E7D32"))
             fig_bar.add_trace(go.Bar(name="Pending", x=[pending_emp], y=["Status"], orientation='h', marker_color="#F57C00"))
-            fig_bar.add_trace(go.Bar(name="Untrained", x=[max(untrained_emp - pending_emp, 0)], y=["Status"], orientation='h', marker_color="#E0E0E0"))
+            fig_bar.add_trace(go.Bar(name="Untrained", x=[untrained_emp], y=["Status"], orientation='h', marker_color="#E0E0E0"))
             fig_bar.update_layout(
                 **_CHART_LAYOUT,
                 barmode="stack",

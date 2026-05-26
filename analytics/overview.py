@@ -107,11 +107,15 @@ def zone_breakdown(unified_df):
     rows = []
     for zone, group in df.groupby("Zone"):
         total = group["Star ID"].nunique() if has_sid else len(group)
-        trained = group[group["Training year"].notna()]["Star ID"].nunique() \
-            if has_sid and "Training year" in group.columns else 0
-        untrained = total - trained
-        pending = group[group["Training_Status"].isin(["PENDING", "ELIGIBLE"])]["Star ID"].nunique() \
-            if has_sid and has_status else 0
+        if has_status:
+            trained = group[group["Training_Status"].isin(["COMPLETED", "ATTENDED"])]["Star ID"].nunique() if has_sid else 0
+            pending = group[group["Training_Status"].isin(["PENDING", "ELIGIBLE"])]["Star ID"].nunique() if has_sid else 0
+            untrained = group[group["Training_Status"].isin(["NOT_TRAINED", "NOT_ELIGIBLE"])]["Star ID"].nunique() if has_sid else 0
+        else:
+            trained = group[group["Training year"].notna()]["Star ID"].nunique() if has_sid and "Training year" in group.columns else 0
+            pending = 0
+            untrained = total - trained
+        
         level_counts = group["SKILL LEVEL - POST"].value_counts().to_dict() if has_post else {}
         rows.append({
             "Zone": zone, "Total": total, "Trained": trained, "Untrained": untrained, "Pending": pending,
